@@ -1,4 +1,4 @@
-package grails.okapi
+package com.k_int.okapi
 
 import grails.boot.*
 import grails.boot.config.GrailsAutoConfiguration

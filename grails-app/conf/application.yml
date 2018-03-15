@@ -2,7 +2,7 @@
 grails:
     profile: web-plugin
     codegen:
-        defaultPackage: grails.okapi
+        defaultPackage: com.k_int.okapi
     spring:
         transactionManagement:
             proxies: false

@@ -1,4 +1,4 @@
-package grails.okapi
+package com.k_int.okapi
 
 class BootStrap {
 

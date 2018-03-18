@@ -1,6 +1,7 @@
 package com.k_int.okapi
 
 import org.grails.events.bus.*
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.security.Http401AuthenticationEntryPoint
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 
@@ -13,6 +14,9 @@ import grails.plugin.springsecurity.SpringSecurityUtils
 import grails.plugins.*
 
 class GrailsOkapiGrailsPlugin extends Plugin {
+  
+  @Value('${client.environment}')
+  boolean okapiAuth = false
 
   // the version or versions of Grails the plugin is designed for
   def grailsVersion = "3.3.2 > *"

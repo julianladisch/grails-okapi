@@ -89,7 +89,7 @@ publishing {
     repositories {
       maven {
         name "KIntPrivate"
-        url "http://maven.k-int.com/content/repositories/private/"
+        url "http://maven.k-int.com/content/repositories/private"
         credentials {
           username un
           password pw

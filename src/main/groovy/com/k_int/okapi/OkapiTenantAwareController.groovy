@@ -1,14 +1,14 @@
 package com.k_int.okapi
 
-import com.k_int.folio.rs.ResourceSharingRequest
+import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.web.access.AccessDeniedHandlerImpl
+
 import com.k_int.web.toolkit.rest.TenantAwareRestfulController
 import com.k_int.web.tools.SimpleLookupService
+
 import grails.artefact.Artefact
 import grails.gorm.multitenancy.CurrentTenant
 import grails.plugin.springsecurity.SpringSecurityService
-
-import org.springframework.security.core.userdetails.UserDetails
-import org.springframework.security.web.access.AccessDeniedHandlerImpl
 
 @CurrentTenant
 @Artefact('Controller')

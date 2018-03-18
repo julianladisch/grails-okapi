@@ -1,11 +1,15 @@
+def un = project.hasProperty('kintMavenUser') ? project.kintMavenUser : null
+def pw = project.hasProperty('kintMavenPassword') ? project.kintMavenPassword : null
+
 buildscript {
-    repositories {
-        mavenLocal()
-        maven { url "https://repo.grails.org/grails/core" }
-    }
-    dependencies {
-        classpath "org.grails:grails-gradle-plugin:$grailsVersion"
-    }
+  repositories {
+    mavenLocal()
+    maven { url "https://repo.grails.org/grails/core" }
+  }
+  dependencies {
+    classpath "org.grails:grails-gradle-plugin:$grailsVersion"
+  }
+
 }
 
 version "1.0.0"
@@ -17,42 +21,80 @@ apply plugin:"org.grails.grails-plugin-publish"
 apply plugin:"org.grails.grails-gsp"
 
 repositories {
-    mavenLocal()
-    maven { url "https://repo.grails.org/grails/core" }
+  mavenLocal()
+  maven { url "https://repo.grails.org/grails/core" }
+  maven { url "http://maven.k-int.com/content/repositories/private" }
 }
 
 dependencies {
-    compile "org.springframework.boot:spring-boot-starter-logging"
-    compile "org.springframework.boot:spring-boot-autoconfigure"
-    compile "org.grails:grails-core"
-    compile "org.springframework.boot:spring-boot-starter-undertow"
-    compile "org.grails:grails-web-boot"
-    compile "org.grails:grails-logging"
-    compile "org.grails:grails-plugin-rest"
-    compile "org.grails:grails-plugin-databinding"
-    compile "org.grails:grails-plugin-i18n"
-    compile "org.grails:grails-plugin-services"
-    compile "org.grails:grails-plugin-url-mappings"
-    compile "org.grails:grails-plugin-interceptors"
-    compile "org.grails.plugins:cache"
-    compile "org.grails.plugins:async"
-    compile "org.grails.plugins:scaffolding"
-    compile "org.grails.plugins:gsp"
-    console "org.grails:grails-console"
-    profile "org.grails.profiles:web-plugin"
-    provided "org.grails:grails-plugin-services"
-    provided "org.grails:grails-plugin-domain-class"
-    testCompile "org.grails:grails-gorm-testing-support"
-    testCompile "org.grails:grails-plugin-testing"
-    testCompile "org.grails:grails-web-testing-support"
-    
-    provided 'org.grails.plugins:spring-security-core:3.2.0'
-    provided 'org.grails.plugins:database-migration:3.0.3'
-    provided 'org.liquibase:liquibase-core:3.5.3'
+  compile "org.springframework.boot:spring-boot-starter-logging"
+  compile "org.springframework.boot:spring-boot-autoconfigure"
+  compile "org.grails:grails-core"
+  compile "org.springframework.boot:spring-boot-starter-undertow"
+  compile "org.grails:grails-web-boot"
+  compile "org.grails:grails-logging"
+  compile "org.grails:grails-plugin-rest"
+  compile "org.grails:grails-plugin-databinding"
+  compile "org.grails:grails-plugin-i18n"
+  compile "org.grails:grails-plugin-services"
+  compile "org.grails:grails-plugin-url-mappings"
+  compile "org.grails:grails-plugin-interceptors"
+  compile "org.grails.plugins:cache"
+  compile "org.grails.plugins:async"
+  compile "org.grails.plugins:scaffolding"
+  compile "org.grails.plugins:gsp"
+  console "org.grails:grails-console"
+  profile "org.grails.profiles:web-plugin"
+  provided "org.grails:grails-plugin-services"
+  provided "org.grails:grails-plugin-domain-class"
+  testCompile "org.grails:grails-gorm-testing-support"
+  testCompile "org.grails:grails-plugin-testing"
+  testCompile "org.grails:grails-web-testing-support"
+
+  provided 'org.grails.plugins:spring-security-core:3.2.0'
+  provided 'org.grails.plugins:database-migration:3.0.3'
+  provided 'org.liquibase:liquibase-core:3.5.3'
+  provided 'com.k_int.grails:kint-web-toolkit:3.3.1'
 }
 
 bootRun {
-    jvmArgs('-Dspring.output.ansi.enabled=always')
+  jvmArgs('-Dspring.output.ansi.enabled=always')
 }
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
+
+publishing {
+  publications {
+    plugin(MavenPublication) {
+      groupId "${group}"
+      pom.withXml {
+        def pomNode = asNode()
+        pomNode.dependencyManagement.replaceNode {}
+
+        // simply remove dependencies without a version
+        // version-less dependencies are handled with dependencyManagement
+        // see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
+        pomNode.dependencies.dependency.findAll {
+          it.version.text().isEmpty()
+        }.each {
+          it.replaceNode {}
+        }
+      }
+      from components.java
+    }
+  }
+
+  if (un) {
+    System.out.println("Found username for K-Int Maven repo '${un}'")
+    repositories {
+      maven {
+        name "KIntPrivate"
+        url "http://maven.k-int.com/content/repositories/private/"
+        credentials {
+          username un
+          password pw
+        }
+      }
+    }
+  }
+}

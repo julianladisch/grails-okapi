@@ -14,9 +14,6 @@ import grails.plugin.springsecurity.SpringSecurityUtils
 import grails.plugins.*
 
 class GrailsOkapiGrailsPlugin extends Plugin {
-  
-  @Value('${client.environment}')
-  boolean okapiAuth = false
 
   // the version or versions of Grails the plugin is designed for
   def grailsVersion = "3.3.2 > *"
@@ -65,7 +62,7 @@ class GrailsOkapiGrailsPlugin extends Plugin {
 
   Closure doWithSpring() { {->
       // If OKAPI aware app.
-      if (okapiAuth && pluginManager.hasGrailsPlugin('springSecurityCore')) {
+      if (pluginManager.hasGrailsPlugin('springSecurityCore')) {
         // Lets load some OKAPI authentication beans for easy integration.
         
         // Change the authentication end point to throw a 401
@@ -99,8 +96,10 @@ class GrailsOkapiGrailsPlugin extends Plugin {
 
   void doWithApplicationContext() {
     // Register this filter first.
-    SpringSecurityUtils.clientRegisterFilter(
-      'okapiAuthenticationFilter', SecurityFilterPosition.FIRST)
+    if (pluginManager.hasGrailsPlugin('springSecurityCore')) {
+      SpringSecurityUtils.clientRegisterFilter(
+        'okapiAuthenticationFilter', SecurityFilterPosition.FIRST)
+    }
   }
 
 //  void onChange(Map<String, Object> event) {

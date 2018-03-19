@@ -23,7 +23,7 @@ apply plugin:"org.grails.grails-gsp"
 repositories {
   mavenLocal()
   maven { url "https://repo.grails.org/grails/core" }
-  maven { url "http://maven.k-int.com/content/repositories/private" }
+  maven { url 'http://maven.k-int.com/content/repositories/private' }
 }
 
 dependencies {
@@ -53,7 +53,6 @@ dependencies {
 
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
-  provided 'org.liquibase:liquibase-core:3.5.3'
   provided 'com.k_int.grails:kint-web-toolkit:3.3.1'
 }
 

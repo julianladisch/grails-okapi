@@ -23,7 +23,7 @@ apply plugin:"org.grails.grails-gsp"
 repositories {
   mavenLocal()
   maven { url "https://repo.grails.org/grails/core" }
-  maven { url 'http://maven.k-int.com/content/repositories/private' }
+  maven { url "http://maven.k-int.com/content/repositories/private" }
 }
 
 dependencies {

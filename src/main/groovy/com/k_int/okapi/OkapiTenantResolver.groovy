@@ -22,6 +22,10 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class OkapiTenantResolver implements TenantResolver {
   
+  public static final String schemaNameToTenantId ( String schemaName ) {
+    schemaName.substring(0, schemaName.length() - getSchemaSuffix().length())
+  }
+  
   public static final String getTenantSchemaName ( String tenantId ) {
     "${tenantId}${getSchemaSuffix()}"
   }

@@ -74,6 +74,11 @@ Helper methods are added to the OKAPI aware controllers to allow you to easily a
 the current patrons granted authorities.
 Secure single method stubs, or use helpers present on the OKAPI controllers to do different things when different authorities are granted.
 
+## Grails Resource Controllers
+
+Grails supports domain classes as controller resources - see http://docs.grails.org/latest/guide/REST.html. OkapiTenantAwareController provides
+some base classes modifed by java Generics.
+
 ``` Groovy
 @CurrentTenant
 class SomeController extends OkapiTenantAwareController<SomeMultiTenantDomain> {

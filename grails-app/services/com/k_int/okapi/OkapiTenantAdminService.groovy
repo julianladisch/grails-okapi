@@ -29,7 +29,7 @@ class OkapiTenantAdminService implements EventPublisher {
       catch ( org.grails.datastore.mapping.core.exceptions.ConfigurationException ce ) {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
         createAccountSchema(new_schema_name)
-        updateAccountSchema(new_schema_name)
+        updateAccountSchema(new_schema_name, tenantId)
 
         hibernateDatastore.addTenantForSchema(new_schema_name)
         notify("okapi:tenant_schema_created", new_schema_name)

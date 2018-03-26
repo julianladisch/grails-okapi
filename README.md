@@ -102,3 +102,13 @@ class SomeController extends OkapiTenantAwareController<SomeMultiTenantDomain> {
     // Do something ...
   }
 }
+
+# Build
+
+## Complile locally
+
+    grails package-plugin - To build locally
+    grails install - to install plugin in local repo
+    
+## Publish
+    gradle publish

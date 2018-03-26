@@ -43,7 +43,8 @@ class OkapiTenantResolver implements TenantResolver {
     
     try {
       String appName = Holders.grailsApplication.config?.okapi?.schema?.appName ?: Holders.grailsApplication.metadata.applicationName
-      "${appName.replaceAll(/\s/,'').replaceAll(/-/,'_').toLowerCase()}"
+
+      return "${appName.replaceAll(/\s/,'').replaceAll(/-/,'_').toLowerCase()}".toString()
     } catch (NullPointerException e) {
       throw new RuntimeException("Could not determine an appname to use in the suffix for schema generation. Please add the paramter okapi.schema.appName to the application config.", e)
     }

@@ -20,7 +20,8 @@ class OkapiTenantAdminService implements EventPublisher {
 
   public void createTenant(String tenantId) {
 
-      String new_schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId)
+      String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
+
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)
@@ -84,7 +85,7 @@ class OkapiTenantAdminService implements EventPublisher {
 
   void updateAccountSchema(String tenantId, String schema_name) {
 
-    log.debug("updateAccountSchema(${schema_name})")
+    log.debug("updateAccountSchema(${tenantId},${schema_name})")
     // Now try create the tables for the schema
     try {
       GrailsLiquibase gl = new GrailsLiquibase(grailsApplication.mainContext)
@@ -94,8 +95,8 @@ class OkapiTenantAdminService implements EventPublisher {
       gl.contexts = []
       gl.labels = []
       gl.defaultSchema = schema_name
-      gl.databaseChangeLogTableName = "${OkapiTenantResolver.getSchemaAppName()}_tenant_changelog"
-      gl.databaseChangeLogLockTableName = '${OkapiTenantResolver.getSchemaAppName()}_tenant_changelog_lock'
+      gl.databaseChangeLogTableName = 'tenant_changelog'
+      gl.databaseChangeLogLockTableName = 'tenant_changelog_lock'
       gl.afterPropertiesSet() // this runs the update command
     } catch (Exception e) {
       log.error("Exception trying to create new account schema tables for $schema_name", e)

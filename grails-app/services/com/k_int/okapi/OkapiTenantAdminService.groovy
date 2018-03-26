@@ -73,8 +73,8 @@ class OkapiTenantAdminService implements EventPublisher {
     while(schemas.next()) {
       String schema_name = schemas.getString("TABLE_SCHEM")
       if ( schema_name.endsWith(OkapiTenantResolver.getSchemaSuffix()) ) {
-        
-        updateAccountSchema(OkapiTenantResolver.schemaNameToTenantId(schema_name), schema_name)
+        log.debug("updateAccountSchema(${schema_name},${OkapiTenantResolver.schemaNameToTenantId(schema_name)})");
+        updateAccountSchema(schema_name,OkapiTenantResolver.schemaNameToTenantId(schema_name))
       }
       else {
         log.debug("${schema_name} does not end with schema suffux ${OkapiTenantResolver.getSchemaSuffix()}");
@@ -83,7 +83,7 @@ class OkapiTenantAdminService implements EventPublisher {
     notify("okapi:all_schemas_refreshed")
   }
 
-  void updateAccountSchema(String tenantId, String schema_name) {
+  void updateAccountSchema(String schema_name, String tenantId) {
 
     log.debug("updateAccountSchema(${tenantId},${schema_name})")
     // Now try create the tables for the schema

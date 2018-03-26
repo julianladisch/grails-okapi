@@ -31,7 +31,7 @@ class OkapiTenantResolver implements TenantResolver {
   }
   
   public static final String getSchemaSuffix () {
-    "_${getSchemaAppName()}"
+    return ('_'+getSchemaAppName())
   }
   
   /**

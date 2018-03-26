@@ -87,8 +87,9 @@ publishing {
     System.out.println("Found username for K-Int Maven repo '${un}'")
     repositories {
       maven {
-        name "KIntPrivate"
-        url "http://maven.k-int.com/content/repositories/private"
+        name "KIntPublic"
+        // url "http://maven.k-int.com/content/repositories/private"
+        url "http://nexus.k-int.com/content/repositories/releases/"
         credentials {
           username un
           password pw

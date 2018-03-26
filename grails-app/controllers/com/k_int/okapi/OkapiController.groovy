@@ -1,10 +1,8 @@
 package com.k_int.okapi
 
-import grails.artefact.Artefact
 import grails.converters.*
 import grails.rest.*
 
-@Artefact('Controller')
 class OkapiController {
 
   static responseFormats = ['json', 'xml']

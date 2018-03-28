@@ -32,7 +32,8 @@ class OkapiTenantAdminService implements EventPublisher {
         createAccountSchema(new_schema_name)
         updateAccountSchema(new_schema_name, tenantId)
 
-        hibernateDatastore.addTenantForSchema(new_schema_name)
+        // This is called in updateAccountSchema too - don't think we should call it twice
+        // hibernateDatastore.addTenantForSchema(new_schema_name)
         notify("okapi:tenant_schema_created", new_schema_name)
       }
   }
@@ -74,6 +75,7 @@ class OkapiTenantAdminService implements EventPublisher {
       String schema_name = schemas.getString("TABLE_SCHEM")
       if ( schema_name.endsWith(OkapiTenantResolver.getSchemaSuffix()) ) {
         log.debug("updateAccountSchema(${schema_name},${OkapiTenantResolver.schemaNameToTenantId(schema_name)})");
+    
         updateAccountSchema(schema_name,OkapiTenantResolver.schemaNameToTenantId(schema_name))
       }
       else {

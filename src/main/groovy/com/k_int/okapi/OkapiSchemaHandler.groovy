@@ -41,11 +41,9 @@ class OkapiSchemaHandler implements SchemaHandler {
     void useSchema(Connection connection, String name) {
         // log.debug("useSchema");
         String useStatement = String.format(useSchemaStatement, name)
-        log.debug("Executing SQL Set Schema Statement: ${useStatement}")
+        // log.debug("Executing SQL Set Schema Statement: ${useStatement}")
         
         try {
-          log.debug("Try");
-
           // Gather all the schemas
           ResultSet schemas = connection.getMetaData().getSchemas()
           Collection<String> schemaNames = []

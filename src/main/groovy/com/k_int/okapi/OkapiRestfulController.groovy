@@ -24,7 +24,14 @@ class OkapiRestfulController<T> extends RestfulController<T> {
   }
   
   def index() {
-    def results = simpleLookupService.lookup(this.resource, params.term, Math.min(params.perPage ?: 100, 100), params.int("page"), params.list("filters"), params.list("match"))
+    
+    def p = params
+    int perPage = Math.min(params.int('perPage') ?: 100, 100)
+    int page = params.int("page") ?: 1
+    List<String> filters = params.list("filters") ?: params.list("filters[]")
+    List<String> match_in = params.list("match") ?: params.list("match[]")
+    
+    def results = simpleLookupService.lookup(this.resource, params.term, perPage, page, filters, match_in)
     respond results
   }
 }

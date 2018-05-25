@@ -1,5 +1,7 @@
 package com.k_int.okapi
 
+import java.util.List
+
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.web.access.AccessDeniedHandlerImpl
 
@@ -49,12 +51,17 @@ class OkapiTenantAwareController<T> extends TenantAwareRestfulController<T> {
   
   def index() {
     
-    def p = params
-    int perPage = Math.min(params.int('perPage') ?: 100, 100)
-    int page = params.int("page") ?: 1
-    List<String> filters = params.list("filters")
-    List<String> match_in = params.list("match[]") ?: params.list("match")
+    final int offset = params.int("offset") ?: 0
+    final int perPage = Math.min(params.int('perPage') ?: params.int('max') ?: 100, 100)
+    final int page = params.int("page") ?: (offset ? (offset / perPage) + 1 : 1)
+    final List<String> filters = params.list("filters")
+    final List<String> match_in = params.list("match[]") ?: params.list("match")
+    final List<String> sorts = params.list("sort[]") ?: params.list("sort")
     
-    respond simpleLookupService.lookup(this.resource, params.term, perPage, page , filters, match_in)
+    if (params.boolean('stats')) {
+      respond simpleLookupService.lookupWithStats(this.resource, params.term, perPage, page , filters, match_in, sorts)
+    } else {
+      respond simpleLookupService.lookup(this.resource, params.term, perPage, page , filters, match_in, sorts)
+    }
   }
 }

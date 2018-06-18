@@ -120,6 +120,8 @@ class OkapiClient {
       String newVal = System.getenv().getOrDefault(key, key)
       
       log.info "Rewriting ${fullMatch} as ${newVal}"
+      
+      newVal
     }
   }
   

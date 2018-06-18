@@ -171,12 +171,19 @@ class OkapiClient {
         payload.instId = backReferenceHost
       }
       
+      final String discoUrl = '/_/discovery/modules'
+      
+      log.info "Attempt to de-register first."
+      def response = client.delete {
+        request.uri.path = "${discoUrl}/${payload.srvcId}"
+      }
+      
       log.info "Attempt to register deployment of module at ${payload.url}"
       
       // Send the info.
-      def response = client.post {
+      response = client.post {
         request.contentType = JSON[0]
-        request.uri.path = '/_/discovery/modules'
+        request.uri.path = discoUrl
         request.body = payload
       }
       

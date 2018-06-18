@@ -81,6 +81,15 @@ grails:
                 scriptlets: html
                 taglib: none
                 staticparts: none
+    server:
+        host: "10.0.2.2" # Default to this for development. We usually run through vagrant.
+        
 endpoints:
     jmx:
         unique-names: true
+
+okapi:
+  service:
+    host: localhost
+    port: 9130
+    

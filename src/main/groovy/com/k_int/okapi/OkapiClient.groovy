@@ -171,11 +171,20 @@ class OkapiClient {
         payload.instId = backReferenceHost
       }
       
-      final String discoUrl = '/_/discovery/modules'
-      
-      log.info "Attempt to de-register first."
-      def response = client.delete {
-        request.uri.path = "${discoUrl}/${payload.srvcId}"
+      def response
+      try {
+        final String discoUrl = '/_/discovery/modules'
+        log.info "Attempt to de-register first using: ${discoUrl}/${payload.srvcId}"
+        response = client.delete {
+          request.uri.path = "${discoUrl}/${payload.srvcId}"
+        }
+      } catch (HttpException httpEx) {
+        
+        // Assume the response 404 means the module is
+        if ((httpEx.fromServer?.statusCode ?: -1) == 404) {
+          log.info "Treated error: \"${httpEx.body}\" as success."
+        } else throw httpEx
+        
       }
       
       log.info "Attempt to register deployment of module at ${payload.url}"

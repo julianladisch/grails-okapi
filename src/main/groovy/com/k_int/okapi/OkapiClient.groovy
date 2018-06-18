@@ -108,6 +108,21 @@ class OkapiClient {
     selfDeploy()
   }
   
+  /**
+   * Because of a limitation of not being able to uppercase text within Kubernetes to generate the
+   * necessary value. We may end up with a mixed case env variable that therefore gets missed. Try and clean here.
+   * 
+   */
+  String cleanVals(String val) {
+    
+    val.replaceAll (/\$\(([^\)]+)\)/) { def fullMatch, def mixedName ->
+      def key = "${mixedName}".replaceAll( /\W/, '_').toUpperCase()
+      String newVal = System.getenv().getOrDefault(key, key)
+      
+      log.info "Rewriting ${fullMatch} as ${newVal}"
+    }
+  }
+  
   void selfRegister () {
     
     Resource modDescriptor = descriptors.module
@@ -148,6 +163,8 @@ class OkapiClient {
       def payload = new JsonSlurper().parseText ( depDescriptor.inputStream.text )
       
       if ( backReferenceHost && backReferencePort ) {
+        backReferenceHost = cleanVals(backReferenceHost)
+        backReferencePort = cleanVals(backReferencePort)
         payload.url = "http://${backReferenceHost}:${backReferencePort}/"
         payload.instId = backReferenceHost
       }

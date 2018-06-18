@@ -61,6 +61,10 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   //    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
 
   Closure doWithSpring() { {->
+    
+      okapiClient (OkapiClient)
+    
+    
       // If OKAPI aware app.
       if (pluginManager.hasGrailsPlugin('springSecurityCore')) {
         // Lets load some OKAPI authentication beans for easy integration.

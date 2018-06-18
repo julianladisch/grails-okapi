@@ -12,7 +12,7 @@ buildscript {
 
 }
 
-version "3.3.6"
+version "3.3.7"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
@@ -54,7 +54,7 @@ dependencies {
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
   provided 'com.k_int.grails:web-toolkit:3.3.4'
-  runtime 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
+  compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
 }
 
 bootRun {

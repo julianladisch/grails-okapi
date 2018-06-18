@@ -43,7 +43,7 @@ class OkapiClient {
   
   HttpBuilder client
   
-  final Map<String,URI> descriptors = [:]
+  final Map<String,Resource> descriptors = [:]
   
   boolean isRegistrationCapable() {
     descriptors.containsKey('module')
@@ -98,8 +98,8 @@ class OkapiClient {
       log.info "Found Descriptor ${res.filename}"
       def matches = res.filename =~ /^(\w+)Descriptor\.json$/
       matches.each { groups ->
-        log.info "Adding ${groups[1].toLowerCase()} to descriptors with URI ${res.URI}."
-        descriptors."${groups[1].toLowerCase()}" = res.URI
+        log.info "Adding ${groups[1].toLowerCase()} to descriptors."
+        descriptors."${groups[1].toLowerCase()}" = res
       }
     }
     
@@ -110,11 +110,11 @@ class OkapiClient {
   
   void selfRegister () {
     
-    URI modDescriptor = descriptors.module
+    Resource modDescriptor = descriptors.module
     if (modDescriptor) {      
       
       // Post the descriptor to OKAPI
-      String payload = GrailsResourceUtils.getFile(modDescriptor).text
+      String payload = modDescriptor.inputStream.text
       
       log.info "Registering module wityh OKAPI..."
       
@@ -141,11 +141,11 @@ class OkapiClient {
   
   void selfDeploy () {
     
-    URI depDescriptor = descriptors.deployment
+    Resource depDescriptor = descriptors.deployment
     if (depDescriptor) {
       
       // First we need to parse the deployment descriptor and replace with the correct values.
-      def payload = new JsonSlurper().parseText ( GrailsResourceUtils.getFile(depDescriptor).text )
+      def payload = new JsonSlurper().parseText ( depDescriptor.inputStream.text )
       
       if ( backReferenceHost && backReferencePort ) {
         payload.url = "http://${backReferenceHost}:${backReferencePort}/"

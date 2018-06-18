@@ -33,13 +33,13 @@ class OkapiClient {
   String okapiHost
   
   @Value('${okapi.service.port:9130}')
-  int okapiPort
+  String okapiPort
   
   @Value('${grails.server.host:localhost}')
   String backReferenceHost
   
   @Value('${grails.server.port:8080}')
-  int backReferencePort 
+  String backReferencePort
   
   HttpBuilder client
   

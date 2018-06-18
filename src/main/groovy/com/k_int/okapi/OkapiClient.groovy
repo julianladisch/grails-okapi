@@ -171,9 +171,10 @@ class OkapiClient {
         payload.instId = backReferenceHost
       }
       
+      final String discoUrl = '/_/discovery/modules'
+      
       def response
       try {
-        final String discoUrl = '/_/discovery/modules'
         log.info "Attempt to de-register first using: ${discoUrl}/${payload.srvcId}"
         response = client.delete {
           request.uri.path = "${discoUrl}/${payload.srvcId}"

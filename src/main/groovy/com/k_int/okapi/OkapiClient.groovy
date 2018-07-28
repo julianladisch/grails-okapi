@@ -41,6 +41,9 @@ class OkapiClient {
   @Value('${grails.server.port:8080}')
   String backReferencePort
   
+  @Value('${selfRegister:try}')  // try|must|off
+  String selfRegister
+  
   HttpBuilder client
   
   final Map<String,Resource> descriptors = [:]
@@ -68,6 +71,28 @@ class OkapiClient {
   
   @PostConstruct
   void init () {
+    switch ( selfRegister ) {
+      case 'no':
+        log.info("No self registration");
+        break;
+      case 'yes':
+        // If this fails, the app will bomb out with an exception
+        doSelfRegister();
+        break;
+      case 'try':
+        try { 
+          doSelfRegister();
+        }
+        catch ( Exception e ) {
+          log.error("**Self registration failed**, but selfRegister set to try. Continuing",e);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  private void doSelfRegister() {
     
     if (okapiHost && okapiPort) {
       

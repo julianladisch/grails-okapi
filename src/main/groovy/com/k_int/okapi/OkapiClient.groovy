@@ -41,7 +41,7 @@ class OkapiClient {
   @Value('${grails.server.port:8080}')
   String backReferencePort
   
-  @Value('${selfRegister:try}')  // try|must|off
+  @Value('${selfRegister:try}')  // try|yes|on|no|off
   String selfRegister
   
   HttpBuilder client
@@ -73,9 +73,11 @@ class OkapiClient {
   void init () {
     switch ( selfRegister ) {
       case 'no':
+      case 'off':
         log.info("No self registration");
         break;
       case 'yes':
+      case 'on':
         // If this fails, the app will bomb out with an exception
         doSelfRegister();
         break;

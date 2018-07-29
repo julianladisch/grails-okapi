@@ -200,7 +200,12 @@ class OkapiClient {
         backReferenceHost = cleanVals(backReferenceHost)
         backReferencePort = cleanVals(backReferencePort)
         payload.url = "http://${backReferenceHost}:${backReferencePort}/"
-        payload.instId = backReferenceHost
+        
+        // Using backReferenceHost default of localhost seems to cause okapi to choke with
+        // BadRequest: 983996/discovery RES 400 3614us okapi Duplicate instance localhost
+        // Current okapi du jour seems to be to supply a UUID for instId
+        // payload.instId = backReferenceHost
+        payload.instId = java.util.UUID.randomUUID().toString()
       }
       
       final String discoUrl = '/_/discovery/modules'

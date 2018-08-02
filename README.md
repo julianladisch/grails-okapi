@@ -118,3 +118,22 @@ edit ~/.gradle/gradle.properties and add
 
 then run
     grails publish-plugin
+
+
+
+
+# Troubleshooting
+
+Q: I updated my module-descriptor template, but can't see the new routes.
+
+A: It appears that okapiClient auto-redeploy will not work properly if there are tennants attached to the module you
+want to update. In normal production environments of course, you would increment the version number but if you're developing
+a module, you likely want some kind of SNAPSHOT behaviour. Current work-around is to remove the module manually and then
+use the okapiClient to auto redeploy. This should pick up your new module-descriptor template and make the paths available.
+Here is an example we use to nuke the olf-erm module.
+
+    curl -XDELETE http://localhost:9130/_/proxy/tenants/diku/modules/olf-erm-1.0.0
+    curl -XDELETE http://localhost:9130/_/discovery/modules/olf-erm-1.0.0/localhost-olf-erm-1.0.0
+    curl -XDELETE http://localhost:9130/_/proxy/modules/olf-erm-1.0.0
+
+

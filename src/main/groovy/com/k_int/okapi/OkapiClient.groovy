@@ -160,7 +160,7 @@ class OkapiClient {
       // Post the descriptor to OKAPI
       def payload = new JsonSlurper().parseText ( modDescriptor.inputStream.text )
       
-      log.info "Registering module with OKAPI..."
+      log.info "Registering module with OKAPI... request path is /_/proxy/modules/${payload.id}"
       
       // Send the info.
       def response
@@ -173,9 +173,8 @@ class OkapiClient {
         
         log.info "Success: Got response ${response}"
       } catch (HttpException err) {
-        
         // Error on put for update. Try posting for new mod.
-        log.info "Error updating. Must be newly registering."
+        log.info "Error updating. Must be newly registering. err:${err} sc:${err.getStatusCode()}"
         
         response = client.post {
           request.contentType = JSON[0]

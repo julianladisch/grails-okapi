@@ -25,8 +25,10 @@ class OkapiSchemaHandler implements SchemaHandler {
     final String defaultSchemaName
 
     OkapiSchemaHandler() {
-        useSchemaStatement = "SET SCHEMA '%s'"
-        // useSchemaStatement = "SET search_path TO %s,public"
+        // We use the search_path variant as folio installs some extensions in the public schema and 
+        // we need to be able to access them.
+        // useSchemaStatement = "SET SCHEMA '%s'"
+        useSchemaStatement = "SET search_path TO %s,public"
         createSchemaStatement = "CREATE SCHEMA %s"
         defaultSchemaName = "public"
     }

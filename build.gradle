@@ -12,7 +12,7 @@ buildscript {
 
 }
 
-version "3.3.10"
+version "3.3.11"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"

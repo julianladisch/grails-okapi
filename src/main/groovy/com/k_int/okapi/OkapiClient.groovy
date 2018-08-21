@@ -203,8 +203,12 @@ class OkapiClient {
         // Using backReferenceHost default of localhost seems to cause okapi to choke with
         // BadRequest: 983996/discovery RES 400 3614us okapi Duplicate instance localhost
         // Current okapi du jour seems to be to supply a UUID for instId
-        // payload.instId = backReferenceHost
-        payload.instId = java.util.UUID.randomUUID().toString()
+        payload.instId = backReferenceHost
+        
+        // SO: The real issue with this was the deregistration below was pinging a request to the wrong URL. If you generate
+        // many instance IDs that are unique here then OKAPI will think it can send to either. Only one instance will be running so OKAPI should have 1
+        // Also, this would cause the deployed version of this module to not be found by OKAPI. Reinstating the above after fixing the issue below.
+//        payload.instId = java.util.UUID.randomUUID().toString()
       }
       
       final String discoUrl = '/_/discovery/modules'

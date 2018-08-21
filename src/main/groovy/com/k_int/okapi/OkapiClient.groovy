@@ -211,9 +211,10 @@ class OkapiClient {
       
       def response
       try {
-        log.info "Attempt to de-register first using: ${discoUrl}/${payload.srvcId}"
+        final String delURI = "${discoUrl}/${payload.srvcId}/${payload.instId}"
+        log.info "Attempt to de-register first using: ${delURI}"
         response = client.delete {
-          request.uri.path = "${discoUrl}/${payload.srvcId}"
+          request.uri.path = "${delURI}"
         }
       } catch (HttpException httpEx) {
         

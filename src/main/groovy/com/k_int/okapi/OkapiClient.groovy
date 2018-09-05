@@ -16,6 +16,7 @@ import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
 import grails.gorm.multitenancy.Tenants.CurrentTenant
 import grails.http.client.*
+import grails.web.api.WebAttributes
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
 import groovyx.net.http.ChainedHttpConfig
@@ -24,10 +25,7 @@ import groovyx.net.http.HttpException
 import groovyx.net.http.HttpVerb
 
 @Slf4j
-class OkapiClient {
-  
-  @Autowired
-  GrailsApplication grailsApplication
+class OkapiClient implements WebAttributes {
   
   @Value('${okapi.service.host:localhost}')
   String okapiHost

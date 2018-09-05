@@ -54,7 +54,7 @@ class OkapiTenantAwareController<T> extends TenantAwareRestfulController<T> {
     final int offset = params.int("offset") ?: 0
     final int perPage = Math.min(params.int('perPage') ?: params.int('max') ?: 100, 100)
     final int page = params.int("page") ?: (offset ? (offset / perPage) + 1 : 1)
-    final List<String> filters = params.list("filters")
+    final List<String> filters = params.list("filters[]") ?: params.list("filters")
     final List<String> match_in = params.list("match[]") ?: params.list("match")
     final List<String> sorts = params.list("sort[]") ?: params.list("sort")
     

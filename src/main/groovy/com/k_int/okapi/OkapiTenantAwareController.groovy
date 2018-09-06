@@ -59,9 +59,9 @@ class OkapiTenantAwareController<T> extends TenantAwareRestfulController<T> {
     final List<String> sorts = params.list("sort[]") ?: params.list("sort")
     
     if (params.boolean('stats')) {
-      respond simpleLookupService.lookupWithStats(this.resource, params.term, perPage, page , filters, match_in, sorts)
+      respond simpleLookupService.lookupWithStats(this.resource, params.term, perPage, page, filters, match_in, sorts)
     } else {
-      respond simpleLookupService.lookup(this.resource, params.term, perPage, page , filters, match_in, sorts)
+      respond simpleLookupService.lookup(this.resource, params.term, perPage, page, filters, match_in, sorts)
     }
   }
 }

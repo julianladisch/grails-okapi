@@ -4,33 +4,38 @@ import static groovyx.net.http.ContentTypes.JSON
 import static groovyx.net.http.HttpBuilder.configure
 
 import javax.annotation.PostConstruct
-
+import javax.servlet.http.HttpServletRequest
 import org.grails.datastore.mapping.multitenancy.exceptions.TenantNotFoundException
-import org.grails.io.support.GrailsResourceUtils
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
+import org.grails.web.servlet.mvc.GrailsWebRequest
+import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-
+import org.springframework.web.context.request.RequestContextHolder
 import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
 import grails.gorm.multitenancy.Tenants.CurrentTenant
 import grails.http.client.*
-import grails.web.api.WebAttributes
+import grails.util.Metadata
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
 import groovyx.net.http.ChainedHttpConfig
 import groovyx.net.http.HttpBuilder
 import groovyx.net.http.HttpException
 import groovyx.net.http.HttpVerb
+import groovyx.net.http.UriBuilder
 
 @Slf4j
-class OkapiClient implements WebAttributes {
+class OkapiClient {
   
-  @Value('${okapi.service.host:localhost}')
+  @Autowired
+  GrailsApplication grailsApplication
+  
+  @Value('${okapi.service.host:}')
   String okapiHost
   
-  @Value('${okapi.service.port:9130}')
+  @Value('${okapi.service.port:}')
   String okapiPort
   
   @Value('${grails.server.host:localhost}')
@@ -38,9 +43,6 @@ class OkapiClient implements WebAttributes {
   
   @Value('${grails.server.port:8080}')
   String backReferencePort
-  
-  @Value('${selfRegister:try}')  // try|yes|on|no|off
-  String selfRegister
   
   HttpBuilder client
   
@@ -50,71 +52,129 @@ class OkapiClient implements WebAttributes {
     descriptors.containsKey('module')
   }
   
-  private void addHeaders (ChainedHttpConfig cfg) {
-    
+  private HttpServletRequest getRequest() {
     try {
-      Serializable tenantId = Tenants.currentId()
+      
+      return WebUtils.retrieveGrailsWebRequest()?.currentRequest
+      
+    } catch(IllegalStateException e) {
+      log.debug "No request present."
+    }
+  }
+  
+  private void addConfig (ChainedHttpConfig cfg) {
+    
+    // Add tenant specific header here.
+    try {
+      String tenantId = OkapiTenantResolver.schemaNameToTenantId( Tenants.currentId().toString() )
       
       cfg.request.headers = [
-        "${OkapiHeaders.TENANT}" : CurrentTenant.get()
+        (OkapiHeaders.TENANT) : tenantId
       ]
       
       log.debug "Adding header for tenant ${tenantId}"
     } catch (TenantNotFoundException e) {
       /* No tenant */
+      log.debug ('No tenant specific headers added as no current tenant for this request.')
     } catch (UnsupportedOperationException e) {
       /* Datastore doesn't support multi-tenancy */
+      log.debug ('No tenant specific headers added as Multitenancy not supported.')
     }
+    
+    // Other config here.
+    log.debug "Current headers are:"
+    request?.getHeaderNames().each { String headerName ->
+      log.debug "\t${headerName}:"
+      for (String value : request.getHeaders(headerName)) {
+        log.debug "\t\t${value}"
+      } 
+    }
+    
+    // Url...
+    addUrl(cfg)
+    
+    // Add the token if present
+    final String token = request.getHeader(OkapiHeaders.TOKEN)
+    if (token) {
+      log.debug "Adding token"
+      cfg.request.headers = [
+        (OkapiHeaders.TOKEN) : token
+      ]
+    }
+  }
+  
+  private void addUrl (ChainedHttpConfig cfg) {
+    // Set the URL
+    final url = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : request.getHeader(OkapiHeaders.URL)
+    
+    if (url) {
+      log.debug "Setting url to: ${url}"
+      final UriBuilder overrides = UriBuilder.root().setFull(url)
+      
+      // Now grab the host and port and scheme
+      cfg.request.uri.scheme = overrides.scheme
+      cfg.request.uri.host = overrides.host
+      cfg.request.uri.port = overrides.port
+    }
+    
+    // If there is a proxy... We should use that.
+    final String proxyHost = request.getHeader('host')
+    if (proxyHost) {
+      String[] parts = proxyHost.split(':')
+      
+      log.debug "Proxy present... Changing host to ${parts[0]}"
+      cfg.request.uri.host = parts[0]
+      
+      if (parts.length > 1) {
+        log.debug "\t...and port to ${parts[1]}"
+        cfg.request.uri.port = (parts[1] as Integer)
+      }
+    }
+    
+    log.debug "Url is now ${cfg.request.uri.toURI()}"
   }
   
   @PostConstruct
   void init () {
-    switch ( selfRegister ) {
-      case 'no':
-      case 'off':
-        log.info("No self registration");
-        break;
-      case 'yes':
-      case 'on':
-        // If this fails, the app will bomb out with an exception
-        doSelfRegister();
-        break;
-      case 'try':
-        try { 
-          doSelfRegister();
-        }
-        catch ( Exception e ) {
-          log.error("**Self registration failed**, but selfRegister set to try. Continuing",e);
-        }
-        break;
-      default:
-        break;
-    }
-  }
-
-  private void doSelfRegister() {
-    
-    if (okapiHost && okapiPort) {
+    final String appName = Metadata.current.applicationName   
+        
+    final String root = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : null
+    client = configure {
       
-      final String root = "http://${okapiHost}:${okapiPort}"
-      
-      log.info "Creating OKAPI client for ${root}"
-      client = configure {
+      // Default root as specified in config.
+      if (root) {
+                 
+        log.info "Using default location for okapi at: ${root}"
         request.uri = root
-        execution.interceptor(HttpVerb.values()) { ChainedHttpConfig cfg, fx ->
-          
-          // Add any headers we can derive to all types of requests.
-          addHeaders(cfg)
-          
-          // Request JSON.
-          cfg.chainedRequest.contentType = JSON[0]
-                    
-          // Apply the original action.
-          fx.apply(cfg)
-        }
+      } else {
+        log.info "No config options specifying okapiHost and okapiPort found on startup."
+      }
+      
+      
+      execution.interceptor(HttpVerb.values()) { ChainedHttpConfig cfg, fx ->
+        
+        // Add any headers we can derive to all types of requests.
+        addConfig(cfg)
+        
+        // Request JSON.
+        cfg.chainedRequest.contentType = JSON[0]
+                  
+        // Apply the original action.
+        fx.apply(cfg)
       }
     }
     
+    
+    try {
+      // Attempt to self register.
+      doSelfRegister()
+      
+    } catch (Exception e) {
+      log.error "Unable to create OkapiClient bean.", e
+    }
+  }
+
+  private void doSelfRegister() {    
     
     PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(grailsApplication.getClassLoader())
     Resource[] resources = resolver.getResources("classpath*:/okapi/*Descriptor.json")
@@ -138,7 +198,7 @@ class OkapiClient implements WebAttributes {
    * necessary value. We may end up with a mixed case env variable that therefore gets missed. Try and clean here.
    * 
    */
-  String cleanVals(String val) {
+  private String cleanVals(String val) {
     
     val.replaceAll (/\$\(([^\)]+)\)/) { def fullMatch, def mixedName ->
       def key = "${mixedName}".replaceAll( /\W/, '_').toUpperCase()
@@ -150,7 +210,7 @@ class OkapiClient implements WebAttributes {
     }
   }
   
-  void selfRegister () {
+  private void selfRegister () {
     
     Resource modDescriptor = descriptors.module
     if (modDescriptor) {      
@@ -163,29 +223,21 @@ class OkapiClient implements WebAttributes {
       // Send the info.
       def response
       try {
-        response = client.put {
-          request.contentType = JSON[0]
-          request.uri.path = "/_/proxy/modules/${payload.id}"
-          request.body = payload
-        }
+        response = put ("/_/proxy/modules/${payload.id}", payload)
         
         log.info "Success: Got response ${response}"
       } catch (HttpException err) {
         // Error on put for update. Try posting for new mod.
         log.info "Error updating. Must be newly registering. err:${err} sc:${err.getStatusCode()}"
         
-        response = client.post {
-          request.contentType = JSON[0]
-          request.uri.path = '/_/proxy/modules'
-          request.body = payload
-        }
+        response = post ('/_/proxy/modules', payload)
         
         log.info "Success: Got response ${response}"
       }
     }
   }
   
-  void selfDeploy () {
+  private void selfDeploy () {
     
     Resource depDescriptor = descriptors.deployment
     if (depDescriptor) {
@@ -215,9 +267,8 @@ class OkapiClient implements WebAttributes {
       try {
         final String delURI = "${discoUrl}/${payload.srvcId}/${payload.instId}"
         log.info "Attempt to de-register first using: ${delURI}"
-        response = client.delete {
-          request.uri.path = "${delURI}"
-        }
+        response = delete ("${delURI}")
+        
       } catch (HttpException httpEx) {
         
         // Assume the response 404 means the module is
@@ -230,13 +281,56 @@ class OkapiClient implements WebAttributes {
       log.info "Attempt to register deployment of module at ${payload.url}"
       
       // Send the info.
-      response = client.post {
-        request.contentType = JSON[0]
-        request.uri.path = discoUrl
-        request.body = payload
-      }
+      response = post (discoUrl, payload)
       
       log.info "Success: Got response ${response}"
     }
   }
+  
+  private cleanUri (String uri) {
+    if (uri.startsWith('//')) {
+      uri = uri.substring(1)
+    }
+    
+    uri
+  }
+  
+  public def get (final String uri, final Map params = null) {
+    
+    client.get({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+    })
+  } 
+  
+  public def post (final String uri, final def jsonData, final Map params = null){
+    client.post({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+      request.body = jsonData
+    })
+  } 
+  
+  public def put (final String uri, final def jsonData, final Map params = null) {
+    client.put({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+      request.body = jsonData
+    })
+  } 
+  
+  public def patch (final String uri, final def jsonData, final Map params = null) {
+    client.patch({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+      request.body = jsonData
+    })
+  } 
+  
+  public def delete (final String uri, final Map params = null) {
+    client.delete({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+    })
+  } 
 }

@@ -35,7 +35,7 @@ class OkapiClient {
   @Value('${okapi.service.host:}')
   String okapiHost
   
-  @Value('${okapi.service.port:}')
+  @Value('${okapi.service.port:80}')
   String okapiPort
   
   @Value('${grails.server.host:localhost}')
@@ -94,7 +94,7 @@ class OkapiClient {
     addUrl(cfg)
     
     // Add the token if present
-    final String token = request.getHeader(OkapiHeaders.TOKEN)
+    final String token = request?.getHeader(OkapiHeaders.TOKEN)
     if (token) {
       log.debug "Adding token"
       cfg.request.headers = [
@@ -105,7 +105,7 @@ class OkapiClient {
   
   private void addUrl (ChainedHttpConfig cfg) {
     // Set the URL
-    final url = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : request.getHeader(OkapiHeaders.URL)
+    final url = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : request?.getHeader(OkapiHeaders.URL)
     
     if (url) {
       log.debug "Setting url to: ${url}"
@@ -118,7 +118,7 @@ class OkapiClient {
     }
     
     // If there is a proxy... We should use that.
-    final String proxyHost = request.getHeader('host')
+    final String proxyHost = request?.getHeader('host')
     if (proxyHost) {
       String[] parts = proxyHost.split(':')
       
@@ -170,7 +170,7 @@ class OkapiClient {
       doSelfRegister()
       
     } catch (Exception e) {
-      log.error "Unable to create OkapiClient bean.", e
+      log.error "Unable to register as okapiHost and okapiPort are not set in config.", e
     }
   }
 
@@ -211,6 +211,11 @@ class OkapiClient {
   }
   
   private void selfRegister () {
+    if (!(okapiHost && okapiPort)) {
+      
+      log.info "Skipping registration as no okapiHost and okapiPort was specified"
+      return
+    }
     
     Resource modDescriptor = descriptors.module
     if (modDescriptor) {      
@@ -238,6 +243,11 @@ class OkapiClient {
   }
   
   private void selfDeploy () {
+    
+    if (!(okapiHost && okapiPort)) {  
+      log.info "Skipping deployment as no okapiHost and okapiPort was specified"
+      return
+    }
     
     Resource depDescriptor = descriptors.deployment
     if (depDescriptor) {

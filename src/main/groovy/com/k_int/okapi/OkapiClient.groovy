@@ -82,11 +82,11 @@ class OkapiClient {
     }
     
     // Other config here.
-    log.debug "Current headers are:"
+    log.trace "Current headers are:"
     request?.getHeaderNames().each { String headerName ->
-      log.debug "\t${headerName}:"
+      log.trace "  ${headerName}:"
       for (String value : request.getHeaders(headerName)) {
-        log.debug "\t\t${value}"
+        log.trace "    ${value}"
       } 
     }
     

@@ -117,8 +117,8 @@ class OkapiClient {
       cfg.request.uri.port = overrides.port
     }
     
-    // If there is a proxy... We should use that.
-    final String proxyHost = request?.getHeader('host')
+    // If there is a proxy... We should use that, but only if we have picked up an OKAPI request.
+    final String proxyHost = request?.getHeader(OkapiHeaders.REQUEST_ID) ? request?.getHeader('host') : null
     if (proxyHost) {
       String[] parts = proxyHost.split(':')
       
@@ -164,14 +164,7 @@ class OkapiClient {
       }
     }
     
-    
-    try {
-      // Attempt to self register.
-      doSelfRegister()
-      
-    } catch (Exception e) {
-      log.error "Unable to register as okapiHost and okapiPort are not set in config.", e
-    }
+    doSelfRegister()
   }
 
   private void doSelfRegister() {    
@@ -189,8 +182,17 @@ class OkapiClient {
     }
     
     // Attempt self registration.
-    selfRegister()
-    selfDeploy()
+    try {
+      selfRegister()
+    } catch (Exception err) {
+      log.info "Error registering module with OKAPI. ${err.message}"
+    }
+    
+    try {
+      selfDeploy()
+    } catch (Exception err) {
+      log.info "Error registering module deployment with OKAPI discovery. ${err.message}"
+    }
   }
   
   /**
@@ -213,7 +215,7 @@ class OkapiClient {
   private void selfRegister () {
     if (!(okapiHost && okapiPort)) {
       
-      log.info "Skipping registration as no okapiHost and okapiPort was specified"
+      log.info "Skipping registration with discovery as no okapiHost was specified"
       return
     }
     
@@ -236,9 +238,10 @@ class OkapiClient {
         log.info "Error updating. Must be newly registering. err:${err} sc:${err.getStatusCode()}"
         
         response = post ('/_/proxy/modules', payload)
-        
         log.info "Success: Got response ${response}"
       }
+    } else {
+      log.info "Skipping registration as no module descriptor could be found on the path."
     }
   }
   
@@ -284,8 +287,8 @@ class OkapiClient {
         // Assume the response 404 means the module is
         if ((httpEx.fromServer?.statusCode ?: -1) == 404) {
           log.info "Treated error: \"${httpEx.body}\" as success."
-        } else throw httpEx
         
+        } else throw httpEx
       }
       
       log.info "Attempt to register deployment of module at ${payload.url}"
@@ -294,6 +297,8 @@ class OkapiClient {
       response = post (discoUrl, payload)
       
       log.info "Success: Got response ${response}"
+    } else {
+      log.info "Skipping deployment registration with discovery as no deployment descriptor could be found on the path."
     }
   }
   

@@ -8,8 +8,6 @@ import org.springframework.web.context.request.RequestAttributes
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletWebRequest
 
-import com.k_int.okapi.OkapiHeaders
-
 import grails.util.Holders
 import groovy.transform.CompileStatic
 import groovy.transform.TypeCheckingMode

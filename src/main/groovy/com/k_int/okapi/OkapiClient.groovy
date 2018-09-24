@@ -5,17 +5,16 @@ import static groovyx.net.http.HttpBuilder.configure
 
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
+
 import org.grails.datastore.mapping.multitenancy.exceptions.TenantNotFoundException
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
-import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.web.context.request.RequestContextHolder
+
 import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
-import grails.gorm.multitenancy.Tenants.CurrentTenant
 import grails.http.client.*
 import grails.util.Metadata
 import groovy.json.JsonSlurper

@@ -31,6 +31,7 @@ class OkapiTenantAdminService implements EventPublisher {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
         createAccountSchema(new_schema_name)
         updateAccountSchema(new_schema_name, tenantId)
+        allTenantIds << tenantId
 
         // This is called in updateAccountSchema too - don't think we should call it twice
         // hibernateDatastore.addTenantForSchema(new_schema_name)
@@ -43,8 +44,8 @@ class OkapiTenantAdminService implements EventPublisher {
     try {
         sql = new Sql(dataSource as DataSource)
         sql.withTransaction {
-            log.debug("Execute -- create schema ${tenantId}");
-            sql.execute("create schema ${tenantId}" as String)
+          log.debug("Execute -- create schema ${tenantId}");
+          sql.execute("create schema ${tenantId}" as String)
         }
         notify("okapi:tenant_created", tenantId)
     } finally {
@@ -53,35 +54,74 @@ class OkapiTenantAdminService implements EventPublisher {
   }
 
   void dropTenant(String tenantId) {
-    log.debug("TenantAdminService::dropTenant(${tenantId})");
+    log.debug("TenantAdminService::dropTenant(${tenantId})")
     Sql sql = null
-    String schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId);
+    String schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId)
     try {
-        sql = new Sql(dataSource as DataSource)
-        sql.withTransaction {
-            log.debug("Execute -- drop schema ${schema_name} cascade");
-            sql.execute("drop schema ${schema_name} cascade" as String)
-        }
-        notify("okapi:tenant_dropped", schema_name)
+      sql = new Sql(dataSource as DataSource)
+      sql.withTransaction {
+          log.debug("Execute -- drop schema ${schema_name} cascade")
+          sql.execute("drop schema ${schema_name} cascade" as String)
+      }
+      
+      allTenantIds.remove(tenantId)
+      notify("okapi:tenant_dropped", schema_name)
     } finally {
         sql?.close()
     }
   }
-
-  void freshenAllTenantSchemas() {
-    log.debug("freshenAllTenantSchemas()");
-    ResultSet schemas = dataSource.getConnection().getMetaData().getSchemas()
-    while(schemas.next()) {
-      String schema_name = schemas.getString("TABLE_SCHEM")
-      if ( schema_name.endsWith(OkapiTenantResolver.getSchemaSuffix()) ) {
-        log.debug("updateAccountSchema(${schema_name},${OkapiTenantResolver.schemaNameToTenantId(schema_name)})");
-    
-        updateAccountSchema(schema_name,OkapiTenantResolver.schemaNameToTenantId(schema_name))
-      }
-      else {
-        log.debug("${schema_name} does not end with schema suffux ${OkapiTenantResolver.getSchemaSuffix()}");
+  
+  private static Set<Serializable> allTenantIdentifiers = null
+  private static Set<Serializable> allTenantSchemaIdentifiers = null
+  
+  Set<Serializable> getAllTenantIds () {
+    log.trace ("TenantAdminService::getAllTenantIds")
+    if (!allTenantIdentifiers) {
+      
+      // Initializing all tenants.
+      log.debug ("Initializing tenant list from db schemas")
+      allTenantIdentifiers = []
+      allTenantSchemaIdentifiers = []
+      
+      ResultSet schemas = dataSource.getConnection().getMetaData().getSchemas()
+      while(schemas.next()) {
+        String schema_name = schemas.getString("TABLE_SCHEM")
+        if ( schema_name.endsWith(OkapiTenantResolver.getSchemaSuffix()) ) {
+          final String tenantId = OkapiTenantResolver.schemaNameToTenantId(schema_name)
+          log.debug ("Adding tenant ${tenantId} and schema ${schema_name}")
+          allTenantSchemaIdentifiers << schema_name
+          allTenantIdentifiers << tenantId
+        } else {
+          log.debug("${schema_name} does not end with schema suffix ${OkapiTenantResolver.getSchemaSuffix()}, skipping");
+        }
       }
     }
+    
+    allTenantIdentifiers    
+  }
+  
+  Set<Serializable> getAllTenantSchemaIds () {
+    log.trace ("TenantAdminService::getAllTenantSchemaIds")
+    
+    if (!allTenantSchemaIdentifiers) {
+      
+      // Initializes both Sets.
+      getAllTenantIds()
+    }
+    
+    allTenantSchemaIdentifiers
+  }
+  
+
+  void freshenAllTenantSchemas() {
+    log.debug("freshenAllTenantSchemas()")
+    
+    for ( final Serializable tenantId : getAllTenantIds() ) {
+      final schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
+      log.debug("updateAccountSchema(${schema_name},${tenantId})");
+      updateAccountSchema(schema_name,tenantId)
+    }
+    
     notify("okapi:all_schemas_refreshed")
   }
 

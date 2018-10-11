@@ -18,8 +18,4 @@ class OkapiRestfulController<T> extends RestfulController<T> {
   def getObjectToBind() {
     return request.JSON
   }
-  
-  def index() {
-    respond doTheLookup()
-  }
 }

@@ -32,20 +32,25 @@ class OkapiTenantResolver implements TenantResolver {
     return ('_'+getSchemaAppName())
   }
   
+  public static String APP_SCHEMA_NAME = null
+  
   /**
    * Determine the app name to use when appending a suffix to the schemas for tenants generated. Although this tries to use the value from application.metadata,
    * this value isn't available when running the Application.groovy file as a java app directly. 
    */
   @CompileStatic(TypeCheckingMode.SKIP)
   public static final String getSchemaAppName () {
-    
-    try {
-      String appName = Holders.grailsApplication.config?.okapi?.schema?.appName ?: Holders.grailsApplication.metadata.applicationName
-
-      return "${appName.replaceAll(/\s/,'').replaceAll(/-/,'_').toLowerCase()}".toString()
-    } catch (NullPointerException e) {
-      throw new RuntimeException("Could not determine an appname to use in the suffix for schema generation. Please add the paramter okapi.schema.appName to the application config.", e)
+    if (!APP_SCHEMA_NAME) {
+      try {
+        String appName = Holders.grailsApplication.config?.okapi?.schema?.appName ?: Holders.grailsApplication.metadata.applicationName
+  
+        APP_SCHEMA_NAME =  "${appName.replaceAll(/\s/,'').replaceAll(/-/,'_').toLowerCase()}".toString()
+      } catch (NullPointerException e) {
+        throw new RuntimeException("Could not determine an appname to use in the suffix for schema generation. Please add the paramter okapi.schema.appName to the application config.", e)
+      }
     }
+    
+    APP_SCHEMA_NAME
   }
   
   @Override

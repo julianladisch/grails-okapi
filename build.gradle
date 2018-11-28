@@ -53,7 +53,7 @@ dependencies {
 
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
-  provided 'com.k_int.grails:web-toolkit:3.3.13'
+  provided 'com.k_int.grails:web-toolkit:3.3.19'
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
 }
 
@@ -64,38 +64,38 @@ bootRun {
 bootRepackage.enabled = false
 
 publishing {
-  publications {
-    plugin(MavenPublication) {
-      groupId "${group}"
-      pom.withXml {
-        def pomNode = asNode()
-        pomNode.dependencyManagement.replaceNode {}
+//  publications {
+//    plugin(MavenPublication) {
+//      groupId "${group}"
+//      pom.withXml {
+//        def pomNode = asNode()
+//        pomNode.dependencyManagement.replaceNode {}
+//
+//        // simply remove dependencies without a version
+//        // version-less dependencies are handled with dependencyManagement
+//        // see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
+//        pomNode.dependencies.dependency.findAll {
+//          it.version.text().isEmpty()
+//        }.each {
+//          it.replaceNode {}
+//        }
+//      }
+//      from components.java
+//    }
+//  }
 
-        // simply remove dependencies without a version
-        // version-less dependencies are handled with dependencyManagement
-        // see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
-        pomNode.dependencies.dependency.findAll {
-          it.version.text().isEmpty()
-        }.each {
-          it.replaceNode {}
-        }
-      }
-      from components.java
-    }
-  }
-
-  if (un) {
-    System.out.println("Found username for K-Int Maven repo '${un}'")
-    repositories {
-      maven {
-        name "KIntPublic"
-        // url "http://maven.k-int.com/content/repositories/private"
-        url "http://nexus.k-int.com/content/repositories/releases/"
-        credentials {
-          username un
-          password pw
-        }
-      }
-    }
-  }
+//  if (un) {
+//    System.out.println("Found username for K-Int Maven repo '${un}'")
+//    repositories {
+//      maven {
+//        name "KIntPublic"
+//        // url "http://maven.k-int.com/content/repositories/private"
+//        url "http://nexus.k-int.com/content/repositories/releases/"
+//        credentials {
+//          username un
+//          password pw
+//        }
+//      }
+//    }
+//  }
 }

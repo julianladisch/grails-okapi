@@ -12,12 +12,12 @@ buildscript {
 
 }
 
-version "3.3.16"
+version "3.3.17"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
 apply plugin:"org.grails.grails-plugin"
-apply plugin:"org.grails.grails-plugin-publish"
+apply plugin:"maven-publish"
 apply plugin:"org.grails.grails-gsp"
 
 repositories {
@@ -63,39 +63,3 @@ bootRun {
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
 
-publishing {
-//  publications {
-//    plugin(MavenPublication) {
-//      groupId "${group}"
-//      pom.withXml {
-//        def pomNode = asNode()
-//        pomNode.dependencyManagement.replaceNode {}
-//
-//        // simply remove dependencies without a version
-//        // version-less dependencies are handled with dependencyManagement
-//        // see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
-//        pomNode.dependencies.dependency.findAll {
-//          it.version.text().isEmpty()
-//        }.each {
-//          it.replaceNode {}
-//        }
-//      }
-//      from components.java
-//    }
-//  }
-
-//  if (un) {
-//    System.out.println("Found username for K-Int Maven repo '${un}'")
-//    repositories {
-//      maven {
-//        name "KIntPublic"
-//        // url "http://maven.k-int.com/content/repositories/private"
-//        url "http://nexus.k-int.com/content/repositories/releases/"
-//        credentials {
-//          username un
-//          password pw
-//        }
-//      }
-//    }
-//  }
-}

@@ -1,7 +1,7 @@
 package com.k_int.okapi
 
 import java.sql.ResultSet
-
+import javax.naming.ConfigurationException
 import javax.sql.DataSource
 
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
@@ -25,9 +25,9 @@ class OkapiTenantAdminService implements EventPublisher {
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)
-        log.debug("Module already registered for tenant");
+        log.debug("Module already registered for tenant")
       }
-      catch ( org.grails.datastore.mapping.core.exceptions.ConfigurationException ce ) {
+      catch ( ConfigurationException ce ) {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
         createAccountSchema(new_schema_name)
         updateAccountSchema(new_schema_name, tenantId)

@@ -6,8 +6,6 @@ import grails.rest.*
 class OkapiController {
 
   static responseFormats = ['json', 'xml']
-  def hibernateDatastore
-  def dataSource
   def okapiTenantAdminService
 
 

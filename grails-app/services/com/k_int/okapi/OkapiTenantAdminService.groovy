@@ -1,9 +1,8 @@
 package com.k_int.okapi
 
 import java.sql.ResultSet
-import javax.naming.ConfigurationException
 import javax.sql.DataSource
-
+import org.grails.datastore.mapping.core.exceptions.ConfigurationException
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
 
 import grails.converters.*
@@ -21,7 +20,6 @@ class OkapiTenantAdminService implements EventPublisher {
   public void createTenant(String tenantId) {
 
       String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
-
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)

@@ -1,6 +1,3 @@
-def un = project.hasProperty('kintMavenUser') ? project.kintMavenUser : null
-def pw = project.hasProperty('kintMavenPassword') ? project.kintMavenPassword : null
-
 buildscript {
   repositories {
     mavenLocal()
@@ -12,7 +9,7 @@ buildscript {
 
 }
 
-version "3.3.17"
+version "3.3.21"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"

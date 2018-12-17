@@ -14,7 +14,7 @@ group "com.k_int.okapi"
 
 apply plugin:"eclipse"
 apply plugin:"org.grails.grails-plugin"
-apply plugin:"maven-publish"
+apply plugin:"org.grails.grails-plugin-publish"
 apply plugin:"org.grails.grails-gsp"
 
 repositories {
@@ -57,6 +57,12 @@ dependencies {
 bootRun {
   jvmArgs('-Dspring.output.ansi.enabled=always')
 }
+
+sourcesJar {
+  println "Excluding the source."
+  exclude '*'
+}
+
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
 

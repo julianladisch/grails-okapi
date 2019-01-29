@@ -43,6 +43,12 @@ class OkapiClient {
   @Value('${grails.server.port:8080}')
   String backReferencePort
   
+  @Value('${okapi.service.deploy:true}')
+  boolean selfDeployFlag
+  
+  @Value('${okapi.service.register:true}')
+  boolean selfRegisterFlag
+  
   HttpBuilder client
   
   final Map<String,Resource> descriptors = [:]
@@ -163,10 +169,10 @@ class OkapiClient {
       }
     }
     
-    doSelfRegister()
+    registerAndDeploy()
   }
 
-  private void doSelfRegister() {    
+  private void registerAndDeploy() {    
     
     PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(grailsApplication.getClassLoader())
     Resource[] resources = resolver.getResources("classpath*:/okapi/*Descriptor.json")
@@ -187,6 +193,7 @@ class OkapiClient {
       log.info "Error registering module with OKAPI. ${err.message}"
     }
     
+    // Attempt self deployment
     try {
       selfDeploy()
     } catch (Exception err) {
@@ -212,6 +219,12 @@ class OkapiClient {
   }
   
   private void selfRegister () {
+    
+    if (!selfRegisterFlag) {
+      log.info "Skipping registration with discovery as per config."
+      return
+    }
+    
     if (!(okapiHost && okapiPort)) {
       
       log.info "Skipping registration with discovery as no okapiHost was specified"
@@ -245,6 +258,11 @@ class OkapiClient {
   }
   
   private void selfDeploy () {
+    
+    if (!selfDeployFlag) {
+      log.info "Skipping deployment as per config."
+      return
+    }
     
     if (!(okapiHost && okapiPort)) {  
       log.info "Skipping deployment as no okapiHost and okapiPort was specified"

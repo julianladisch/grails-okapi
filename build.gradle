@@ -50,18 +50,13 @@ dependencies {
 
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
-  provided 'com.k_int.grails:web-toolkit:3.3.22'
+  provided 'com.k_int.grails:web-toolkit-ce:3.3.24'
   provided "org.hibernate:hibernate-core:5.1.16.Final"
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
 }
 
 bootRun {
   jvmArgs('-Dspring.output.ansi.enabled=always')
-}
-
-sourcesJar {
-  println "Excluding the source."
-  exclude '*'
 }
 
 // enable if you wish to package this plugin as a standalone application

@@ -11,9 +11,6 @@ import org.grails.datastore.gorm.jdbc.schema.SchemaHandler
 /**
  * Resolves the schema names
  *
- * @author Graeme Rocher
- * @since 6.0
- *
  * @See https://github.com/grails/gorm-hibernate5/blob/master/grails-datastore-gorm-hibernate5/src/main/groovy/org/grails/orm/hibernate/HibernateDatastore.java
  */
 @CompileStatic

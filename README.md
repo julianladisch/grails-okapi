@@ -109,18 +109,6 @@ class SomeController extends OkapiTenantAwareController<SomeMultiTenantDomain> {
 
     grails package-plugin - To build locally
     grails install - to install plugin in local repo
-    
-## Publish
-edit ~/.gradle/gradle.properties and add
-
-    kintMavenUser=
-    kintMavenPassword=
-
-then run
-    grails publish-plugin
-
-
-
 
 # Troubleshooting
 

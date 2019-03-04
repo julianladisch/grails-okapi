@@ -327,42 +327,62 @@ class OkapiClient {
     uri
   }
   
-  public def get (final String uri, final Map params = null) {
+  public def get (final String uri, final Map params = null, final Closure expand = null) {
     
     client.get({
       request.uri = cleanUri(uri)
       request.uri.query = params
+      
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
     })
   } 
   
-  public def post (final String uri, final def jsonData, final Map params = null){
+  public def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null){
     client.post({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
     })
   } 
   
-  public def put (final String uri, final def jsonData, final Map params = null) {
+  public def put (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     client.put({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
     })
   } 
   
-  public def patch (final String uri, final def jsonData, final Map params = null) {
+  public def patch (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     client.patch({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
     })
   } 
   
-  public def delete (final String uri, final Map params = null) {
+  public def delete (final String uri, final Map params = null, final Closure expand = null) {
     client.delete({
       request.uri = cleanUri(uri)
       request.uri.query = params
+      
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
     })
   } 
 }

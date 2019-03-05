@@ -28,6 +28,10 @@ class OkapiTenantResolver implements TenantResolver {
     "${tenantId}${getSchemaSuffix()}"
   }
   
+  public static final boolean isValidTenantSchemaName ( String schemaName ) {
+    schemaName.endsWith(getSchemaSuffix())
+  }
+  
   public static final String getSchemaSuffix () {
     return ('_'+getSchemaAppName())
   }

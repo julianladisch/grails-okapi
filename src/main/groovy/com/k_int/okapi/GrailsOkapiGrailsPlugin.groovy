@@ -1,10 +1,11 @@
 package com.k_int.okapi
 
 import org.grails.events.bus.*
+import org.grails.orm.hibernate.HibernateDatastore
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.security.Http401AuthenticationEntryPoint
 import org.springframework.boot.web.servlet.FilterRegistrationBean
-
+import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.okapi.springsecurity.OkapiAuthAwareAccessDeniedHandler
 import com.k_int.okapi.springsecurity.OkapiAuthenticationFilter
 import com.k_int.okapi.springsecurity.OkapiAuthenticationProvider
@@ -85,5 +86,12 @@ class GrailsOkapiGrailsPlugin extends Plugin {
       SpringSecurityUtils.clientRegisterFilter(
         'okapiAuthenticationFilter', SecurityFilterPosition.FIRST)
     }
+    
+    // Register the listener _IF_ hibernate plugin is included in the application.
+    if (pluginManager.hasGrailsPlugin('hibernate')) {
+      HibernateDatastore datastore = applicationContext.getBean(HibernateDatastore)
+      applicationContext.addApplicationListener ( new RemoteOkapiLinkListener(datastore) )
+    }
+    
   }
 }

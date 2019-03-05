@@ -332,7 +332,6 @@ class OkapiClient {
     client.get({
       request.uri = cleanUri(uri)
       request.uri.query = params
-      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }

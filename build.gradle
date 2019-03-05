@@ -5,6 +5,7 @@ buildscript {
   }
   dependencies {
     classpath "org.grails:grails-gradle-plugin:$grailsVersion"
+    classpath "org.grails.plugins:hibernate5:${gormVersion-".RELEASE"}"
   }
 
 }
@@ -47,7 +48,9 @@ dependencies {
   testCompile "org.grails:grails-gorm-testing-support"
   testCompile "org.grails:grails-plugin-testing"
   testCompile "org.grails:grails-web-testing-support"
-
+  
+  provided "org.grails.plugins:hibernate5"
+  provided "org.hibernate:hibernate-core:5.1.16.Final"
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
   provided 'com.k_int.grails:web-toolkit-ce:3.3.24'

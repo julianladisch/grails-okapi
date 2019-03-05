@@ -3,6 +3,7 @@ package com.k_int.okapi
 import java.sql.ResultSet
 import javax.sql.DataSource
 import org.grails.datastore.mapping.core.exceptions.ConfigurationException
+import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
 
 import grails.converters.*
@@ -13,7 +14,7 @@ import groovy.sql.Sql
 
 class OkapiTenantAdminService implements EventPublisher {
 
-  def hibernateDatastore
+  HibernateDatastore hibernateDatastore
   def dataSource
   GrailsApplication grailsApplication
 
@@ -116,7 +117,6 @@ class OkapiTenantAdminService implements EventPublisher {
     
     for ( final Serializable tenantId : getAllTenantIds() ) {
       final schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
-      log.debug("updateAccountSchema(${schema_name},${tenantId})");
       updateAccountSchema(schema_name,tenantId)
     }
     
@@ -125,7 +125,7 @@ class OkapiTenantAdminService implements EventPublisher {
 
   void updateAccountSchema(String schema_name, String tenantId) {
 
-    log.debug("updateAccountSchema(${tenantId},${schema_name})")
+    log.debug("updateAccountSchema(${schema_name},${tenantId})")
     // Now try create the tables for the schema
     try {
       GrailsLiquibase gl = new GrailsLiquibase(grailsApplication.mainContext)

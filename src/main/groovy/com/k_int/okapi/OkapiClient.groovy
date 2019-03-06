@@ -20,9 +20,12 @@ import grails.util.Metadata
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
 import groovyx.net.http.ChainedHttpConfig
+import groovyx.net.http.FromServer
 import groovyx.net.http.HttpBuilder
+import groovyx.net.http.HttpConfig
 import groovyx.net.http.HttpException
 import groovyx.net.http.HttpVerb
+import groovyx.net.http.NativeHandlers
 import groovyx.net.http.UriBuilder
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -32,6 +35,8 @@ import java.util.concurrent.TimeUnit
 
 @Slf4j
 class OkapiClient {
+  
+  private static final EXTRA_JSON_HEADERS = ['application/vnd.api+json']
   
   @Autowired
   GrailsApplication grailsApplication
@@ -72,16 +77,26 @@ class OkapiClient {
     }
   }
   
-  private void addConfig (ChainedHttpConfig cfg) {
+  private final Map mapFromRequest() {
+    
+    log.trace "Current headers are:"
+    request?.getHeaderNames().each { String headerName ->
+      log.trace "  ${headerName}:"
+      for (String value : request.getHeaders(headerName)) {
+        log.trace "    ${value}"
+      }
+    }
+    
+    final Map theMap = [
+      "okapi-url": request?.getHeader(OkapiHeaders.URL),
+      "proxy-host": (request?.getHeader(OkapiHeaders.REQUEST_ID) ? request?.getHeader('host') : null),
+      "headers" : [:]
+    ]
     
     // Add tenant specific header here.
     try {
       String tenantId = OkapiTenantResolver.schemaNameToTenantId( Tenants.currentId().toString() )
-      
-      cfg.request.headers = [
-        (OkapiHeaders.TENANT) : tenantId
-      ]
-      
+      theMap['headers'][(OkapiHeaders.TENANT)] = OkapiTenantResolver.schemaNameToTenantId( Tenants.currentId().toString() )      
       log.debug "Adding header for tenant ${tenantId}"
     } catch (TenantNotFoundException e) {
       /* No tenant */
@@ -91,32 +106,24 @@ class OkapiClient {
       log.debug ('No tenant specific headers added as Multitenancy not supported.')
     }
     
-    // Other config here.
-    log.trace "Current headers are:"
-    request?.getHeaderNames().each { String headerName ->
-      log.trace "  ${headerName}:"
-      for (String value : request.getHeaders(headerName)) {
-        log.trace "    ${value}"
-      } 
-    }
-    
-    // Url...
-    addUrl(cfg)
-    
     // Add the token if present
     final String token = request?.getHeader(OkapiHeaders.TOKEN)
     if (token) {
-      log.debug "Adding token"
-      cfg.request.headers = [
-        (OkapiHeaders.TOKEN) : token
-      ]
+      theMap['headers'][(OkapiHeaders.TOKEN)] = token
     }
+    
+    theMap
   }
   
-  private void addUrl (ChainedHttpConfig cfg) {
-    // Set the URL
-    final url = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : request?.getHeader(OkapiHeaders.URL)
+  private void addConfig (HttpConfig cfg, final Map cfgMap) {
     
+    // Url...
+    addUrl(cfg, cfgMap['okapi-url'], cfgMap['proxy-host'])
+    cfg.request.headers = cfgMap['headers']
+  }
+  
+  private void addUrl (HttpConfig cfg, final String url, final String proxyHost) {
+    // Set the URL
     if (url) {
       log.debug "Setting url to: ${url}"
       final UriBuilder overrides = UriBuilder.root().setFull(url)
@@ -128,7 +135,6 @@ class OkapiClient {
     }
     
     // If there is a proxy... We should use that, but only if we have picked up an OKAPI request.
-    final String proxyHost = request?.getHeader(OkapiHeaders.REQUEST_ID) ? request?.getHeader('host') : null
     if (proxyHost) {
       String[] parts = proxyHost.split(':')
       
@@ -159,26 +165,19 @@ class OkapiClient {
       } else {
         log.info "No config options specifying okapiHost and okapiPort found on startup."
       }
-//      execution.executor = new ThreadPoolExecutor(
-//        0,  // Min Idle threads.
-//        10, // 10 threads max.
-//        10, // 10 second wait.
-//        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
-//        new SynchronousQueue<Runnable>() // Use a synchronous queue
-//      )
+      execution.executor = new ThreadPoolExecutor(
+        0,  // Min Idle threads.
+        10, // 10 threads max.
+        10, // 10 second wait.
+        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
+        new SynchronousQueue<Runnable>() // Use a synchronous queue
+      )
       
-//      execution.maxThreads = 10
+      execution.maxThreads = 10
       
-      execution.interceptor(HttpVerb.values()) { ChainedHttpConfig cfg, fx ->
-        
-        // Add any headers we can derive to all types of requests.
-        addConfig(cfg)
-        
-        // Request JSON.
-        cfg.chainedRequest.contentType = JSON[0]
-                  
-        // Apply the original action.
-        fx.apply(cfg)
+      // Register vnd.api+json as parsable json.
+      response.parser(EXTRA_JSON_HEADERS) { HttpConfig cfg, FromServer fs ->
+        NativeHandlers.Parsers.json(cfg, fs)
       }
     }
     
@@ -331,7 +330,6 @@ class OkapiClient {
       log.info "Skipping deployment registration with discovery as no deployment descriptor could be found on the path."
     }
   }
-  
   private cleanUri (String uri) {
     if (uri.startsWith('//')) {
       uri = uri.substring(1)
@@ -341,10 +339,17 @@ class OkapiClient {
   }
   
   public CompletableFuture getAsync (final String uri, final Map params = null, final Closure expand = null) {
-    
-    client.getAsync({
+    final Map rm = mapFromRequest()
+    client.getAsync({      
       request.uri = cleanUri(uri)
       request.uri.query = params
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
+      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }
@@ -353,20 +358,36 @@ class OkapiClient {
   
   public def get (final String uri, final Map params = null, final Closure expand = null) {
     
+    final Map rm = mapFromRequest()
     client.get({
       request.uri = cleanUri(uri)
       request.uri.query = params
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
+      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
   }
   
-  public def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null){
+  public def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
+    
+    final Map rm = mapFromRequest()
     client.post({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
@@ -375,10 +396,18 @@ class OkapiClient {
   }
   
   public def put (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
+    
+    final Map rm = mapFromRequest()
     client.put({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
@@ -387,10 +416,18 @@ class OkapiClient {
   }
   
   public def patch (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
+    
+    final Map rm = mapFromRequest()
     client.patch({
       request.uri = cleanUri(uri)
       request.uri.query = params
       request.body = jsonData
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
@@ -399,9 +436,18 @@ class OkapiClient {
   }
   
   public def delete (final String uri, final Map params = null, final Closure expand = null) {
+    
+    final Map rm = mapFromRequest()
+    
     client.delete({
       request.uri = cleanUri(uri)
       request.uri.query = params
+      
+      // Add any headers we can derive to all types of requests.
+      addConfig(delegate, rm)
+      
+      // Request JSON.
+      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()

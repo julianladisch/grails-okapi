@@ -9,10 +9,10 @@ import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
 public class RefdataService {
     
   @Subscriber('okapi:schema_update')
-  public void onTenantSchemaCreated(String new_schema_name) {
+  public void onTenantSchemaCreated(String tenantId, schemaName) {
     
-    log.debug("RefdataService::onTenantSchemaCreated(${new_schema_name})")
+    log.debug("RefdataService::onTenantSchemaCreated(${schemaName})")
     // Skip this until we can work out whats going wrong...
-    GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
+    GrailsDomainRefdataHelpers.setDefaultsForTenant(schemaName)
   }
 }

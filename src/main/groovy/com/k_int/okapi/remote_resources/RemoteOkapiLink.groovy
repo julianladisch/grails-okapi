@@ -2,7 +2,10 @@ package com.k_int.okapi.remote_resources;
 
 import grails.gorm.MultiTenant
 
-public class RemoteOkapiLink implements MultiTenant<RemoteOkapiLink> {
+public abstract class RemoteOkapiLink implements MultiTenant<RemoteOkapiLink> {
+  
+  abstract String remoteUri()
+  
   String id // This is the internal ID of the link and not the ID of the remote license.
   
   String remoteId

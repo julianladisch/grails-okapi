@@ -24,6 +24,7 @@ import groovyx.net.http.HttpBuilder
 import groovyx.net.http.HttpException
 import groovyx.net.http.HttpVerb
 import groovyx.net.http.UriBuilder
+import java.util.concurrent.CompletableFuture
 
 @Slf4j
 class OkapiClient {
@@ -327,6 +328,17 @@ class OkapiClient {
     uri
   }
   
+  public CompletableFuture getAsync (final String uri, final Map params = null, final Closure expand = null) {
+    
+    client.getAsync({
+      request.uri = cleanUri(uri)
+      request.uri.query = params
+      if (expand) {
+        expand.rehydrate(delegate, owner, thisObject)()
+      }
+    })
+  }
+  
   public def get (final String uri, final Map params = null, final Closure expand = null) {
     
     client.get({
@@ -336,7 +348,7 @@ class OkapiClient {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
-  } 
+  }
   
   public def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null){
     client.post({
@@ -348,7 +360,7 @@ class OkapiClient {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
-  } 
+  }
   
   public def put (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     client.put({
@@ -360,7 +372,7 @@ class OkapiClient {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
-  } 
+  }
   
   public def patch (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     client.patch({
@@ -372,7 +384,7 @@ class OkapiClient {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
-  } 
+  }
   
   public def delete (final String uri, final Map params = null, final Closure expand = null) {
     client.delete({
@@ -383,5 +395,5 @@ class OkapiClient {
         expand.rehydrate(delegate, owner, thisObject)()
       }
     })
-  } 
+  }
 }

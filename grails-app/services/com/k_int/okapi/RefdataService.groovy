@@ -8,7 +8,7 @@ import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
 @Slf4j
 public class RefdataService {
     
-  @Subscriber('okapi:tenant_schema_created')
+  @Subscriber('okapi:schema_update')
   public void onTenantSchemaCreated(String new_schema_name) {
     
     log.debug("RefdataService::onTenantSchemaCreated(${new_schema_name})")

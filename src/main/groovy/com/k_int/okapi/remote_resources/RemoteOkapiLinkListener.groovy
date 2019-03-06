@@ -77,7 +77,6 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
   
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
     AbstractHibernateDatastore es = (AbstractHibernateDatastore) event.source
-    es.getApplicationContext()
     Map<String, String> propertyNames = [:]
     
     def obj = event.entityObject
@@ -161,7 +160,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
 
   @Override
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
-    return eventType == PostLoadEvent
+    return [PostLoadEvent, PostUpdateEvent, PostInsertEvent].contains(eventType)
   }
 
   @Override

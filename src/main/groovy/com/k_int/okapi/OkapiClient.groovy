@@ -25,6 +25,10 @@ import groovyx.net.http.HttpException
 import groovyx.net.http.HttpVerb
 import groovyx.net.http.UriBuilder
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 @Slf4j
 class OkapiClient {
@@ -155,7 +159,15 @@ class OkapiClient {
       } else {
         log.info "No config options specifying okapiHost and okapiPort found on startup."
       }
+//      execution.executor = new ThreadPoolExecutor(
+//        0,  // Min Idle threads.
+//        10, // 10 threads max.
+//        10, // 10 second wait.
+//        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
+//        new SynchronousQueue<Runnable>() // Use a synchronous queue
+//      )
       
+//      execution.maxThreads = 10
       
       execution.interceptor(HttpVerb.values()) { ChainedHttpConfig cfg, fx ->
         

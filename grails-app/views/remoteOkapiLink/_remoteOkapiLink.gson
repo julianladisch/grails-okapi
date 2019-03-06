@@ -1,0 +1,10 @@
+import groovy.transform.*
+import java.util.concurrent.Future
+import com.k_int.okapi.remote_resources.RemoteOkapiLink
+import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
+import com.k_int.web.toolkit.refdata.RefdataValue
+
+@Field RemoteOkapiLink remoteOkapiLink
+json g.render(remoteOkapiLink) {
+  call("remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}", (remoteOkapiLink["remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}"] as Future).get())
+}

@@ -1,6 +1,0 @@
-import groovy.transform.*
-import com.k_int.okapi.remote_resources.RemoteOkapiLink
-import com.k_int.web.toolkit.refdata.RefdataValue
-
-@Field RemoteOkapiLink remoteOkapiLink
-json g.render(remoteOkapiLink)

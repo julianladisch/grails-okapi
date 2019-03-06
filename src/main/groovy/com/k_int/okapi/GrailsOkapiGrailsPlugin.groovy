@@ -90,7 +90,7 @@ class GrailsOkapiGrailsPlugin extends Plugin {
     // Register the listener _IF_ hibernate plugin is included in the application.
     if (pluginManager.hasGrailsPlugin('hibernate')) {
       HibernateDatastore datastore = applicationContext.getBean(HibernateDatastore)
-      applicationContext.addApplicationListener ( new RemoteOkapiLinkListener(datastore) )
+      RemoteOkapiLinkListener.register(datastore, applicationContext)
     }
     
   }

@@ -20,6 +20,7 @@ import groovy.transform.CompileStatic
 import groovy.transform.Memoized
 import groovy.util.logging.Slf4j
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
 @Slf4j
@@ -30,7 +31,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
   
   // This will serve as a cache of paths to keep the performance up.
   // The value will either be a boolean FALSE or a set of properties to act on.
-  private final Map<Class, ?> linkedProperties = [:]
+  private final Map<Class, ?> linkedProperties = new ConcurrentHashMap<Class, ?> ()
   
   protected final Set<String> datasourceNames = []
   
@@ -78,11 +79,11 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     Map<String, String> propertyNames = [:]
     
     def obj = event.entityObject
-    log.debug "Checking cache..."
+//    log.debug "Checking cache..."
     if (linkedProperties.containsKey(obj.class)) {
       def value = linkedProperties[ obj.class ]
       if (value == false) {
-        log.debug "\tIgnoring as per cache"
+//        log.debug "\tIgnoring as per cache"
         return
       }
       

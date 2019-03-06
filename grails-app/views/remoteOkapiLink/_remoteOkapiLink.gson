@@ -5,6 +5,12 @@ import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.web.toolkit.refdata.RefdataValue
 
 @Field RemoteOkapiLink remoteOkapiLink
+
+final String objectProperty = "remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}"
+
 json g.render(remoteOkapiLink) {
-  call("remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}", (remoteOkapiLink["remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}"] as Future).get())
+  
+  if(remoteOkapiLink.hasProperty(objectProperty)){
+    call(objectProperty, (remoteOkapiLink[objectProperty] as Future).get())
+  }
 }

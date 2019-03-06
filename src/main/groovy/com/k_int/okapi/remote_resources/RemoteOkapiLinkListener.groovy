@@ -26,8 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Slf4j
 class RemoteOkapiLinkListener implements PersistenceEventListener {
   
-  @Autowired
-  OkapiClient okapiClient
+  final OkapiClient okapiClient
   
   // This will serve as a cache of paths to keep the performance up.
   // The value will either be a boolean FALSE or a set of properties to act on.
@@ -50,7 +49,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     
     if (okapiSchemas) {
       // Cretae the listener
-      RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener()
+      RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener(ctx.getBean('okapiClient', OkapiClient))
       
       // ADd to the app context. 
       ctx.addApplicationListener ( listener )
@@ -66,7 +65,9 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     }
   }
   
-  private RemoteOkapiLinkListener() { /* Hide the constructor */ }  
+  private RemoteOkapiLinkListener(OkapiClient okapiClient) {
+    this.okapiClient = okapiClient
+  }  
   
   @Memoized
   protected boolean isValidSource(AbstractPersistenceEvent event) {
@@ -75,7 +76,8 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
   }
   
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
-    
+    AbstractHibernateDatastore es = (AbstractHibernateDatastore) event.source
+    es.getApplicationContext()
     Map<String, String> propertyNames = [:]
     
     def obj = event.entityObject
@@ -97,7 +99,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
       if (RemoteOkapiLink.isAssignableFrom(obj.class)) {
         log.debug "${obj} is of link type"
         // In this early implementation we know what we want. Future expansion will allow for annotated properties etc.
-        RemoteOkapiLink rol = RemoteOkapiLink as RemoteOkapiLink
+        RemoteOkapiLink rol = obj as RemoteOkapiLink
         propertyNames.putAll(['remoteId':rol.remoteUri()])
       }
     }

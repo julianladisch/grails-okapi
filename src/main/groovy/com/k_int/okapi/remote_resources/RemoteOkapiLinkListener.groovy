@@ -2,17 +2,14 @@ package com.k_int.okapi.remote_resources;
 
 
 import org.grails.datastore.gorm.jdbc.schema.SchemaHandler
-import org.grails.datastore.mapping.core.Datastore
-import org.grails.datastore.mapping.core.connections.ConnectionSource
-import org.grails.datastore.mapping.core.connections.ConnectionSourcesListener
 import org.grails.datastore.mapping.engine.event.*
-import org.grails.datastore.mapping.multitenancy.MultiTenancySettings
 import org.grails.orm.hibernate.AbstractHibernateDatastore
-import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.orm.hibernate.connections.HibernateConnectionSource
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEvent
+import org.springframework.context.ConfigurableApplicationContext
+
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
 
@@ -22,59 +19,93 @@ import groovy.util.logging.Slf4j
 
 @CompileStatic
 @Slf4j
-class RemoteOkapiLinkListener extends AbstractPersistenceEventListener {
+class RemoteOkapiLinkListener implements PersistenceEventListener {
   
   @Autowired
   OkapiClient okapiClient
   
-  private RemoteOkapiLinkListener(final AbstractHibernateDatastore datastore, final boolean multiTenantInit) {
+  protected final Set<String> datasourceNames = []
+  
+  public static void register (final AbstractHibernateDatastore datastore, ConfigurableApplicationContext ctx) {
+    log.debug "Adding RemoteOkapiLinkListener for datastore ${datastore}'s children"
     
-    // Handles this Datastore.
-    super (datastore)
+    // Schema handler is private. Re-initialise it from the connection settings.
+    Class<? extends SchemaHandler> schemaHandlerClass = datastore.connectionSources.defaultConnectionSource.settings.dataSource.schemaHandler
+    SchemaHandler schemaHandler = BeanUtils.instantiate(schemaHandlerClass)
     
-    // Should only be called once with boolean set to true
-    if (multiTenantInit && datastore instanceof HibernateDatastore) {
-      HibernateDatastore hds = datastore as HibernateDatastore
+    // Assume Hibernate connection, given Hibernate store
+    HibernateConnectionSource hcs = datastore.connectionSources.defaultConnectionSource as HibernateConnectionSource
+    
+    // Grab all the Okapi schemas.
+    def okapiSchemas = schemaHandler.resolveSchemaNames(hcs.dataSource).findResults { OkapiTenantResolver.isValidTenantSchemaName( it ) ? it : null }
+    
+    if (okapiSchemas) {
+      // Cretae the listener
+      RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener()
       
-      Class<? extends SchemaHandler> schemaHandlerClass = hds.connectionSources.defaultConnectionSource.settings.dataSource.schemaHandler
-      SchemaHandler schemaHandler = BeanUtils.instantiate(schemaHandlerClass)
+      // ADd to the app context. 
+      ctx.addApplicationListener ( listener )
       
-      // Assume hibernate connection
-      HibernateConnectionSource hcs = hds.connectionSources.defaultConnectionSource as HibernateConnectionSource
-      
-      for (String schema: schemaHandler.resolveSchemaNames(hcs.dataSource)) {
-        if (OkapiTenantResolver.isValidTenantSchemaName( schema )) {
-          final Datastore ds = hds.getDatastoreForConnection ( schema )
-          log.debug "Adding listener for datastore ${ds}"
-          datastore.applicationContext.addApplicationListener ( new RemoteOkapiLinkListener(ds, false) )
-        }
+      // Add all Okapi schema names. 
+      for (String schema : okapiSchemas) {
+        final AbstractHibernateDatastore ds = datastore.getDatastoreForConnection ( schema )
+
+        // For this listener we use the datasource name.
+        listener.datasourceNames << ds.dataSourceName
       }
     }
   }
   
-  public RemoteOkapiLinkListener(final AbstractHibernateDatastore datastore) {
-    this(datastore, true)
-    log.debug "Adding listener for datastore ${datastore}"
-  }
+  private RemoteOkapiLinkListener() { /* Hide the constructor */ }  
   
-  private boolean validateSource (AbstractHibernateDatastore ds) {
-    ds.dataSourceName == (datastore as AbstractHibernateDatastore).dataSourceName
-  }
-  
-  @Override
+  @Memoized
   protected boolean isValidSource(AbstractPersistenceEvent event) {
-    Object source = event.getSource();
-    return (source instanceof AbstractHibernateDatastore) && validateSource(source as AbstractHibernateDatastore);
+    Object source = event.source
+    return (source instanceof AbstractHibernateDatastore) && datasourceNames.contains((source as AbstractHibernateDatastore).dataSourceName)
   }
   
-  @Override
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
-    log.debug "${datastore} EVENT: ${event.eventType} on ${event.entityObject}"
+    log.debug "${event.source} EVENT: ${event.eventType} on ${event.entityObject}"
+  }
+  
+  /**
+   * {@inheritDoc}
+   * @see org.springframework.context.ApplicationListener#onApplicationEvent(
+   *     org.springframework.context.ApplicationEvent)
+   */
+  @Override
+  public final void onApplicationEvent(ApplicationEvent e) {
+    if(e instanceof AbstractPersistenceEvent) {
+
+      AbstractPersistenceEvent event = (AbstractPersistenceEvent)e;
+      if(!isValidSource(event)) {
+        return;
+      }
+
+      if (event.isCancelled()) {
+        return;
+      }
+
+      if (event.isListenerExcluded(getClass().getName())) {
+        return;
+      }
+      onPersistenceEvent(event);
+    }
   }
 
   @Override
   @Memoized
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
     return eventType == PostLoadEvent
+  }
+
+  @Override
+  public boolean supportsSourceType(Class<?> sourceType) {
+    AbstractHibernateDatastore.isAssignableFrom(sourceType);
+  }
+
+  @Override
+  public int getOrder() {
+    return DEFAULT_ORDER;
   }
 }

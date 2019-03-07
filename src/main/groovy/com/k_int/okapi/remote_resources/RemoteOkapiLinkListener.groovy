@@ -80,16 +80,17 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     Map<String, String> propertyNames = [:]
     
     def obj = event.entityObject
-//    log.debug "Checking cache..."
+    log.trace "Checking cache..."
+    def value
     if (linkedProperties.containsKey(obj.class)) {
-      def value = linkedProperties[ obj.class ]
+      value = linkedProperties[ obj.class ]
       if (value == false) {
-//        log.debug "\tIgnoring as per cache"
+        log.trace "\tIgnoring as per cache"
         return
       }
       
       if (value instanceof Map) {
-        log.debug "\tFound cached values"
+        log.trace "\tFound cached values"
         propertyNames = value
       }
     } else {
@@ -115,6 +116,9 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     // From now on we know we want to prefetch some things.
     // Hand off to the decorator.
     decorateObject(obj, propertyNames)
+    
+    // We should also cache this.
+    if (value != propertyNames) linkedProperties[ obj.class ] = propertyNames
   }
   
   public static final String FETCHED_PROPERTY_SUFFIX = '_object'

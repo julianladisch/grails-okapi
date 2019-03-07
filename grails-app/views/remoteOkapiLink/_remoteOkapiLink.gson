@@ -1,4 +1,6 @@
 import groovy.transform.*
+import groovyx.net.http.HttpException
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import com.k_int.okapi.remote_resources.RemoteOkapiLink
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
@@ -7,10 +9,24 @@ import com.k_int.web.toolkit.refdata.RefdataValue
 @Field RemoteOkapiLink remoteOkapiLink
 
 final String objectProperty = "remoteId${RemoteOkapiLinkListener.FETCHED_PROPERTY_SUFFIX}"
+def remoteObjValue
+if(remoteOkapiLink.hasProperty(objectProperty)){
+  try {
+    remoteObjValue = ( remoteOkapiLink?.getAt(objectProperty) as Future)?.get()
+    
+  } catch (ExecutionException e) {
+    
+    if (e.cause instanceof HttpException) {
+      HttpException httpEx = e.cause as HttpException
+      remoteObjValue = [error: httpEx.statusCode, message: httpEx.message ]
+    } else {
+      remoteObjValue = [error: e.class.name, message: e.message]
+    }
+  }
+}
 
 json g.render(remoteOkapiLink) {
-  
-  if(remoteOkapiLink.hasProperty(objectProperty)){
-    call(objectProperty, (remoteOkapiLink[objectProperty] as Future).get())
+  if (remoteObjValue) {
+    call( objectProperty, remoteObjValue )
   }
 }

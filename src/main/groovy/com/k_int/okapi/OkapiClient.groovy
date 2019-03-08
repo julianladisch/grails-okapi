@@ -3,6 +3,11 @@ package com.k_int.okapi
 import static groovyx.net.http.ContentTypes.JSON
 import static groovyx.net.http.HttpBuilder.configure
 
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
 
@@ -15,28 +20,25 @@ import org.springframework.beans.factory.annotation.Value
 
 import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
-import grails.http.client.*
 import grails.util.Metadata
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
-import groovyx.net.http.ChainedHttpConfig
 import groovyx.net.http.FromServer
 import groovyx.net.http.HttpBuilder
 import groovyx.net.http.HttpConfig
 import groovyx.net.http.HttpException
-import groovyx.net.http.HttpVerb
 import groovyx.net.http.NativeHandlers
 import groovyx.net.http.UriBuilder
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.SynchronousQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 
 @Slf4j
 class OkapiClient {
   
-  private static final EXTRA_JSON_HEADERS = ['application/vnd.api+json']
+  private static final List<String> EXTRA_JSON_TYPES = [
+    'application/vnd.api+json'
+  ]
+  
+  // Collect this for a full list of the supplied types plus our own. So it can be easily referenced elsewhere.
+  public static final List<String> JSON_TYPES = JSON.collect { "${it}" } + EXTRA_JSON_TYPES
   
   @Autowired
   GrailsApplication grailsApplication
@@ -175,8 +177,11 @@ class OkapiClient {
       
       execution.maxThreads = 10
       
+      // Default sending type.
+      request.contentType = JSON[0]
+      
       // Register vnd.api+json as parsable json.
-      response.parser(EXTRA_JSON_HEADERS) { HttpConfig cfg, FromServer fs ->
+      response.parser(EXTRA_JSON_TYPES) { HttpConfig cfg, FromServer fs ->
         NativeHandlers.Parsers.json(cfg, fs)
       }
     }
@@ -347,9 +352,6 @@ class OkapiClient {
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
       
-      // Request JSON.
-      request.contentType = JSON[0]
-      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }
@@ -365,9 +367,6 @@ class OkapiClient {
       
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
-      
-      // Request JSON.
-      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
@@ -386,9 +385,6 @@ class OkapiClient {
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
       
-      // Request JSON.
-      request.contentType = JSON[0]
-      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }
@@ -405,9 +401,6 @@ class OkapiClient {
       
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
-      
-      // Request JSON.
-      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
@@ -426,9 +419,6 @@ class OkapiClient {
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
       
-      // Request JSON.
-      request.contentType = JSON[0]
-      
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()
       }
@@ -445,9 +435,6 @@ class OkapiClient {
       
       // Add any headers we can derive to all types of requests.
       addConfig(delegate, rm)
-      
-      // Request JSON.
-      request.contentType = JSON[0]
       
       if (expand) {
         expand.rehydrate(delegate, owner, thisObject)()

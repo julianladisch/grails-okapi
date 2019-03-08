@@ -1,7 +1,5 @@
 package com.k_int.okapi
 
-import static groovyx.net.http.ContentTypes.JSON
-
 import javax.servlet.http.HttpServletResponse
 
 import grails.io.IOUtils
@@ -9,9 +7,9 @@ import groovyx.net.http.ChainedHttpConfig
 import groovyx.net.http.FromServer
 import groovyx.net.http.HttpException
 
-class ResourceProxyController {
+class ResourceProxyController {  
   
-  private static final Set<String> ignoredParams = ['controller', 'targetPath', 'action', 'extraParams', 'id']
+  private static final Set<String> ignoredParams = ['controller', 'action', 'targetPath', 'withParameters', 'defaultParams', 'id']
   
   // Adding namespace so we can have multiple controllers named ResourcePorxy controller but send traffic to the correct one.  
   static namespace = 'okapi'
@@ -19,20 +17,48 @@ class ResourceProxyController {
 
   OkapiClient okapiClient
   
-  private static final HashMap<String, List> paramsToMap (def params) {
+  private final HashMap<String, List> paramsToMap (Map params) {
     final HashMap<String, List> paramMap = [:]
     
-    params.keySet().each{ String k ->
-      if (!ignoredParams.contains(k)) {
-        paramMap.put(k, params.list(k))
+    for (String k : params.keySet()) {
+      if (!ignoredParams.contains(k) && !k.endsWith('Id')) {
+        def val = params[k]
+        if (val instanceof Closure) {
+          val.setDelegate(this)
+          val = val()
+        } else {
+          val = params.list(k)
+          val = val.collect {
+            if (it instanceof Closure) {
+              it.setDelegate(this)
+              return it()
+            }
+            
+            it
+          }
+        }
+        
+        paramMap.put(k, val)
       }
     }
     
     paramMap
   }
   
-  private static final Map<String, List> mergeParams (final Map<String, ?> lhs, final Map<String, ?> rhs = [:]) {
-    rhs.each { final String key, final def rhsValue ->
+  private final def evaluateParamIfClosure ( def c ) {
+    if (c instanceof Closure) {
+      c.setDelegate(this)
+      c.setResolveStrategy(Closure.DELEGATE_FIRST)
+      return c()
+    }
+    
+    c
+  }
+  
+  private final Map<String, List> mergeParams (final Map<String, ?> lhs, final Map<String, ?> rhs = [:]) {
+    rhs.each { final String key, def rhsValue ->
+      
+      rhsValue = evaluateParamIfClosure (rhsValue)
       
       final List<String> rhsListValue = []
       
@@ -40,60 +66,64 @@ class ResourceProxyController {
       if (!(rhsValue instanceof Collection)) {
         rhsListValue << rhsValue
       } else {
-        rhsListValue.addAll(rhsValue)
+        rhsListValue.addAll( rhsValue.collect { evaluateParamIfClosure(it) } )
       }
       
-      final def lhsValue = lhs[key]
+      def lhsValue = evaluateParamIfClosure (lhs[key])
       if (!lhsValue) {
         // Just add the value.
         lhs[key] = rhsListValue
         
-      } else if (!(lhsValue instanceof Collection)) {
-        // Create a collection and add to it.
-        lhs[key] = [lhsValue] + rhsListValue
       } else {
-        // Collection
-        lhs[key] = lhsValue + rhsListValue
+        
+        if (!(lhsValue instanceof Collection)) {
+          // Create a collection and add to it.
+          lhs[key] = [evaluateParamIfClosure( lhsValue )] + rhsListValue
+        } else {
+          // Collection
+          lhs[key] = lhsValue.collect { evaluateParamIfClosure(it) } + rhsListValue
+        }
       }
     }
     
     lhs
   }
 
-  def index(final String targetPath, final String id, final Map<String, ?> defaultParams, final Boolean extraParams) {
+  def index(final String targetPath, final String id, final Boolean withParameters) {
+    
+    // Maps cannot be in the action definition above. The compiler complains.
+    // This map is set in the special url mappings.
+    final Map<String, ?> defaultParams = params['defaultParams']
+    
     String uri = "${targetPath}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1')
     
-    final Map<String, ?> proxyParams = extraParams ? paramsToMap( params ) : [:]
+    // Start with current parameters if flagged.
+    final Map<String, ?> proxyParams = (withParameters == true) ? paramsToMap( params ) : [:]
+    
     if (id) {
-      final String strId = "${id}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '$1')
-      uri += "/${strId}"
+      uri += id.replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1')
     } else {
       // Only merge the defaults in when accessing the root path.
       mergeParams (proxyParams, defaultParams)
     }
     
-    log.debug ("Proxying to URI: ${uri}")
-    
-    log.debug ("Proxying params: ${proxyParams}")
+    log.debug ("Proxying to URI: ${uri} with parameters ${proxyParams}")
     
     final HttpServletResponse clientResponse = getResponse()
     
     try {
-      try {
-        okapiClient.get( uri, proxyParams) {
-          delegate.response.parser(JSON[0]) { ChainedHttpConfig cfg, FromServer fs ->
-            IOUtils.copy(fs.inputStream, clientResponse.outputStream)
-          }
+      okapiClient.get( uri, proxyParams ) {
+        delegate.response.parser('*/*') { ChainedHttpConfig cfg, FromServer fs ->
+          clientResponse.setStatus(fs.statusCode)
+          IOUtils.copy(fs.inputStream, clientResponse.outputStream)
         }
-      } catch (HttpException httpEx) {
-      log.error ("Error when attempting to proxy to OKAPI at ${uri}", httpEx)
-        render (status: httpEx.fromServer.statusCode, text: httpEx.fromServer.message)
-      } catch (Exception otherEx) {
-      log.error ("Error when attempting to proxy to OKAPI at ${uri}", otherEx)
-        render (status: 500, text: otherEx.message)
       }
-    } catch (Exception e) {
-      log.error ("Error when attempting to proxy to OKAPI at ${uri}", e)
+    } catch (HttpException httpEx) {
+      log.error ("Error when attempting to proxy to OKAPI at ${uri}", httpEx)
+//      render (status: httpEx.fromServer.statusCode, text: httpEx.fromServer.message)
+    } catch (Exception otherEx) {
+      log.error ("Error when attempting to proxy to OKAPI at ${uri}", otherEx)
+//      render (status: 500, text: otherEx.message)
     }
   }
 }

@@ -15,17 +15,19 @@ import org.springframework.context.ConfigurableApplicationContext
 
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
-
+import grails.web.api.ServletAttributes
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
 import groovy.util.logging.Slf4j
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import net.sf.ehcache.CacheManager
 
 @CompileStatic
 @Slf4j
-class RemoteOkapiLinkListener implements PersistenceEventListener {
+class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttributes {
   
+  private static RemoteOkapiLinkListener singleton
   final OkapiClient okapiClient
   
   // This will serve as a cache of paths to keep the performance up.
@@ -34,39 +36,50 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
   
   protected final Set<String> datasourceNames = []
   
-  public static void register (final AbstractHibernateDatastore datastore, ConfigurableApplicationContext ctx) {
-    log.debug "Adding RemoteOkapiLinkListener for datastore ${datastore}'s children"
+  public static void register (final AbstractHibernateDatastore datastore, final ConfigurableApplicationContext applicationContext) {
     
-    // Schema handler is private. Re-initialise it from the connection settings.
-    Class<? extends SchemaHandler> schemaHandlerClass = datastore.connectionSources.defaultConnectionSource.settings.dataSource.schemaHandler
-    SchemaHandler schemaHandler = BeanUtils.instantiate(schemaHandlerClass)
+    if (!singleton) {
     
-    // Assume Hibernate connection, given Hibernate store
-    HibernateConnectionSource hcs = datastore.connectionSources.defaultConnectionSource as HibernateConnectionSource
-    
-    // Grab all the Okapi schemas.
-    def okapiSchemas = schemaHandler.resolveSchemaNames(hcs.dataSource).findResults { OkapiTenantResolver.isValidTenantSchemaName( it ) ? it : null }
-    
-    if (okapiSchemas) {
-      // Cretae the listener
-      RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener(ctx.getBean('okapiClient', OkapiClient))
+      log.debug "Adding RemoteOkapiLinkListener for datastore ${datastore}'s children"
       
-      // ADd to the app context. 
-      ctx.addApplicationListener ( listener )
+      // Schema handler is private. Re-initialise it from the connection settings.
+      Class<? extends SchemaHandler> schemaHandlerClass = datastore.connectionSources.defaultConnectionSource.settings.dataSource.schemaHandler
+      SchemaHandler schemaHandler = BeanUtils.instantiate(schemaHandlerClass)
       
-      // Add all Okapi schema names. 
-      for (String schema : okapiSchemas) {
-        final AbstractHibernateDatastore ds = datastore.getDatastoreForConnection ( schema )
-
-        // For this listener we use the datasource name.
-        listener.datasourceNames << ds.dataSourceName
-        log.debug "\t...watching ${ds.dataSourceName}"
+      // Assume Hibernate connection, given Hibernate store
+      HibernateConnectionSource hcs = datastore.connectionSources.defaultConnectionSource as HibernateConnectionSource
+      
+      // Grab all the Okapi schemas.
+      def okapiSchemas = schemaHandler.resolveSchemaNames(hcs.dataSource).findResults { OkapiTenantResolver.isValidTenantSchemaName( it ) ? it : null }
+      
+      if (okapiSchemas) {
+        // Create the listener
+        RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener( applicationContext )
+        
+        // Add all Okapi schema names. 
+        for (String schema : okapiSchemas) {
+          final AbstractHibernateDatastore ds = datastore.getDatastoreForConnection ( schema )
+  
+          // For this listener we use the datasource name.
+          listener.datasourceNames << ds.dataSourceName
+          log.debug "\t...watching ${ds.dataSourceName}"
+        }
       }
+    } else {
+      log.warn "Application listener already exists. Not adding again."
     }
   }
   
-  private RemoteOkapiLinkListener(OkapiClient okapiClient) {
-    this.okapiClient = okapiClient
+  private RemoteOkapiLinkListener(final ConfigurableApplicationContext applicationContext) {
+    
+    // Just fetch the bean.
+    this.okapiClient = applicationContext.getBean('okapiClient', OkapiClient)
+    
+    // Add to the app context.
+    applicationContext.addApplicationListener ( this )
+    
+    // Flag the singleton.
+    singleton = this
   }  
   
   @Memoized
@@ -127,14 +140,39 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
     propertyNames.each { propName, location ->
       final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
       
-      // Use the okapi client to fetch a completable future for the value.
-      log.debug "prefetching uri ${uri}"
-      CompletableFuture backGroundFetch = okapiClient.getAsync(uri)
+      log.debug "checking request cache..."
+      CompletableFuture backGroundFetch = retrieveCacheValue( uri )
+      
+      if (!backGroundFetch) {
+        log.debug "not found actually request the resource..."
+        
+        // Use the okapi client to fetch a completable future for the value.
+        log.debug "prefetching uri ${uri}"
+        backGroundFetch = cacheValue( uri, okapiClient.getAsync(uri) )
+      }
       
       // Add a metaproperty to the instance metaclass so we can access it later :)
       log.debug "adding property ${propName}${FETCHED_PROPERTY_SUFFIX}"
       obj.metaClass["${propName}${FETCHED_PROPERTY_SUFFIX}"] = backGroundFetch
     }
+  }
+  
+  
+  private CompletableFuture cacheValue(final String key, final CompletableFuture value) {
+    if (request) {
+      // Cache the value.
+      request.setAttribute("${this.class.name}.${key}", value)
+    }
+    
+    value
+  }
+  
+  private CompletableFuture retrieveCacheValue(final String key) {
+    
+    if (!request) return null
+    
+    // Cache the value.
+    request.getAttribute("${this.class.name}.${key}") as CompletableFuture
   }
   
   /**
@@ -163,11 +201,13 @@ class RemoteOkapiLinkListener implements PersistenceEventListener {
   }
 
   @Override
+  @Memoized
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
     return [PostLoadEvent, PostUpdateEvent, PostInsertEvent].contains(eventType)
   }
 
   @Override
+  @Memoized
   public boolean supportsSourceType(Class<?> sourceType) {
     AbstractHibernateDatastore.isAssignableFrom(sourceType)
   }

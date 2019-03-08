@@ -111,6 +111,7 @@ class OkapiClient {
     // Add the token if present
     final String token = request?.getHeader(OkapiHeaders.TOKEN)
     if (token) {
+      log.debug "Adding header for token"
       theMap['headers'][(OkapiHeaders.TOKEN)] = token
     }
     
@@ -169,7 +170,7 @@ class OkapiClient {
       }
       execution.executor = new ThreadPoolExecutor(
         0,  // Min Idle threads.
-        10, // 10 threads max.
+        20, // 10 threads max.
         10, // 10 second wait.
         TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
         new SynchronousQueue<Runnable>() // Use a synchronous queue

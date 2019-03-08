@@ -18,7 +18,7 @@ class OkapiTenantAdminService implements EventPublisher {
   def dataSource
   GrailsApplication grailsApplication
 
-  public void createTenant(String tenantId) {
+  public synchronized void createTenant(String tenantId) {
 
       String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
       try {
@@ -38,7 +38,7 @@ class OkapiTenantAdminService implements EventPublisher {
       }
   }
 
-  void createAccountSchema(String tenantId) {
+  synchronized void createAccountSchema(String tenantId) {
     Sql sql = null
     try {
         sql = new Sql(dataSource as DataSource)
@@ -52,7 +52,7 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
 
-  void dropTenant(String tenantId) {
+  synchronized void dropTenant(String tenantId) {
     log.debug("TenantAdminService::dropTenant(${tenantId})")
     Sql sql = null
     String schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId)
@@ -112,7 +112,7 @@ class OkapiTenantAdminService implements EventPublisher {
   }
   
 
-  void freshenAllTenantSchemas() {
+  synchronized void freshenAllTenantSchemas() {
     log.debug("freshenAllTenantSchemas()")
     
     for ( final Serializable tenantId : getAllTenantIds() ) {
@@ -123,7 +123,7 @@ class OkapiTenantAdminService implements EventPublisher {
     notify("okapi:all_schemas_refreshed")
   }
 
-  void updateAccountSchema(String schema_name, String tenantId) {
+  synchronized void updateAccountSchema(String schema_name, String tenantId) {
 
     log.debug("updateAccountSchema(${schema_name},${tenantId})")
     // Now try create the tables for the schema

@@ -69,7 +69,7 @@ class OkapiClient {
     descriptors.containsKey('module')
   }
   
-  private HttpServletRequest getRequest() {
+  private final HttpServletRequest getRequestObject() {
     try {
       
       return WebUtils.retrieveGrailsWebRequest()?.currentRequest
@@ -82,16 +82,16 @@ class OkapiClient {
   private final Map mapFromRequest() {
     
     log.trace "Current headers are:"
-    request?.getHeaderNames().each { String headerName ->
+    requestObject?.getHeaderNames().each { String headerName ->
       log.trace "  ${headerName}:"
-      for (String value : request.getHeaders(headerName)) {
+      for (String value : requestObject.getHeaders(headerName)) {
         log.trace "    ${value}"
       }
     }
     
     final Map theMap = [
-      "okapi-url": request?.getHeader(OkapiHeaders.URL),
-      "proxy-host": (request?.getHeader(OkapiHeaders.REQUEST_ID) ? request?.getHeader('host') : null),
+      "okapi-url": requestObject?.getHeader(OkapiHeaders.URL),
+      "proxy-host": (requestObject?.getHeader(OkapiHeaders.REQUEST_ID) ? requestObject?.getHeader('host') : null),
       "headers" : [:]
     ]
     
@@ -109,7 +109,7 @@ class OkapiClient {
     }
     
     // Add the token if present
-    final String token = request?.getHeader(OkapiHeaders.TOKEN)
+    final String token = requestObject?.getHeader(OkapiHeaders.TOKEN)
     if (token) {
       log.debug "Adding header for token"
       theMap['headers'][(OkapiHeaders.TOKEN)] = token
@@ -118,14 +118,14 @@ class OkapiClient {
     theMap
   }
   
-  private void addConfig (HttpConfig cfg, final Map cfgMap) {
+  private void addConfig (final HttpConfig cfg, final Map cfgMap) {
     
     // Url...
     addUrl(cfg, cfgMap['okapi-url'], cfgMap['proxy-host'])
     cfg.request.headers = cfgMap['headers']
   }
   
-  private void addUrl (HttpConfig cfg, final String url, final String proxyHost) {
+  private void addUrl (final HttpConfig cfg, final String url, final String proxyHost) {
     // Set the URL
     if (url) {
       log.debug "Setting url to: ${url}"
@@ -224,7 +224,7 @@ class OkapiClient {
    * necessary value. We may end up with a mixed case env variable that therefore gets missed. Try and clean here.
    * 
    */
-  private String cleanVals(String val) {
+  private final String cleanVals(String val) {
     
     val.replaceAll (/\$\(([^\)]+)\)/) { def fullMatch, def mixedName ->
       def key = "${mixedName}".replaceAll( /\W/, '_').toUpperCase()
@@ -336,7 +336,7 @@ class OkapiClient {
       log.info "Skipping deployment registration with discovery as no deployment descriptor could be found on the path."
     }
   }
-  private cleanUri (String uri) {
+  private final String cleanUri (String uri) {
     if (uri.startsWith('//')) {
       uri = uri.substring(1)
     }
@@ -344,7 +344,7 @@ class OkapiClient {
     uri
   }
   
-  public CompletableFuture getAsync (final String uri, final Map params = null, final Closure expand = null) {
+  public final CompletableFuture getAsync (final String uri, final Map params = null, final Closure expand = null) {
     final Map rm = mapFromRequest()
     client.getAsync({      
       request.uri = cleanUri(uri)
@@ -359,7 +359,7 @@ class OkapiClient {
     })
   }
   
-  public def get (final String uri, final Map params = null, final Closure expand = null) {
+  public final def get (final String uri, final Map params = null, final Closure expand = null) {
     
     final Map rm = mapFromRequest()
     client.get({
@@ -375,7 +375,7 @@ class OkapiClient {
     })
   }
   
-  public def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
+  public final def post (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     
     final Map rm = mapFromRequest()
     client.post({
@@ -409,7 +409,7 @@ class OkapiClient {
     })
   }
   
-  public def patch (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
+  public final def patch (final String uri, final def jsonData, final Map params = null, final Closure expand = null) {
     
     final Map rm = mapFromRequest()
     client.patch({
@@ -426,7 +426,7 @@ class OkapiClient {
     })
   }
   
-  public def delete (final String uri, final Map params = null, final Closure expand = null) {
+  public final def delete (final String uri, final Map params = null, final Closure expand = null) {
     
     final Map rm = mapFromRequest()
     

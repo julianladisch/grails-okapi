@@ -80,12 +80,21 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     
     // Flag the singleton.
     singleton = this
-  }  
+  }
+  
+  private ConcurrentHashMap<String, Boolean> validSourceCache = [:] as ConcurrentHashMap<String, Boolean>
   
   @Memoized
   protected boolean isValidSource(AbstractPersistenceEvent event) {
     Object source = event.source
-    return (source instanceof AbstractHibernateDatastore) && datasourceNames.contains((source as AbstractHibernateDatastore).dataSourceName)
+    
+    Boolean isValid = validSourceCache[event.source.class.name]
+    if (isValid == null) {
+      isValid = (source instanceof AbstractHibernateDatastore) && datasourceNames.contains((source as AbstractHibernateDatastore).dataSourceName)
+      validSourceCache[event.source.class.name] = isValid
+    }
+    
+    isValid
   }
   
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
@@ -141,14 +150,14 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
       
       log.debug "checking request cache..."
-      CompletableFuture backGroundFetch = retrieveCacheValue( uri )
+      def backGroundFetch = retrieveCacheValue( uri )
       
       if (!backGroundFetch) {
         log.debug "not found actually request the resource..."
         
         // Use the okapi client to fetch a completable future for the value.
         log.debug "prefetching uri ${uri}"
-        backGroundFetch = cacheValue( uri, okapiClient.getAsync(uri) )
+        backGroundFetch = cacheValue( uri, okapiClient.get(uri) )
       }
       
       // Add a metaproperty to the instance metaclass so we can access it later :)
@@ -158,21 +167,24 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   }
   
   
-  private CompletableFuture cacheValue(final String key, final CompletableFuture value) {
+  private def cacheValue(final String key, final def value) {
     if (request) {
       // Cache the value.
-      request.setAttribute("${this.class.name}.${key}", value)
+      Map<String, ?> requestCache = request.getAttribute(this.class.name) as Map<String, ?>
+      if (requestCache == null) {
+        requestCache = [:]
+        request.setAttribute(this.class.name, requestCache)
+      }
+      requestCache[key] = value
     }
     
     value
   }
   
-  private CompletableFuture retrieveCacheValue(final String key) {
-    
-    if (!request) return null
-    
-    // Cache the value.
-    request.getAttribute("${this.class.name}.${key}") as CompletableFuture
+  private def retrieveCacheValue(final String key) {
+    // Grab the value from the cache.
+    Map<String, ?> requestCache = request?.getAttribute(this.class.name) as Map<String, ?>
+    requestCache?.get(key)
   }
   
   /**
@@ -199,15 +211,21 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       onPersistenceEvent(event)
     }
   }
+  
+  private static final Set<String> supportedEvents = [PostLoadEvent.class.name, PostUpdateEvent.class.name, PostInsertEvent.class.name] as Set<String>
 
-  @Override
+  
   @Memoized
+  public boolean supportsEventTypeClassName(final String eventTypeClassName) {
+    supportedEvents.contains(eventTypeClassName)
+  }
+  
+  @Override
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
-    return [PostLoadEvent, PostUpdateEvent, PostInsertEvent].contains(eventType)
+    supportsEventTypeClassName(eventType.class.name)
   }
 
   @Override
-  @Memoized
   public boolean supportsSourceType(Class<?> sourceType) {
     AbstractHibernateDatastore.isAssignableFrom(sourceType)
   }

@@ -12,7 +12,10 @@ final String objectProperty = "remoteId${RemoteOkapiLinkListener.FETCHED_PROPERT
 def remoteObjValue
 if(remoteOkapiLink.hasProperty(objectProperty)){
   try {
-    remoteObjValue = ( remoteOkapiLink?.getAt(objectProperty) as Future)?.get()
+    remoteObjValue = remoteOkapiLink?.getAt(objectProperty) 
+    if (remoteObjValue instanceof Future) {
+      remoteObjValue = (remoteObjValue  as Future)?.get()
+    }
     
   } catch (ExecutionException e) {
     

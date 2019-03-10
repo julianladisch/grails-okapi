@@ -217,12 +217,13 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   
   @Memoized
   public boolean supportsEventTypeClassName(final String eventTypeClassName) {
-    supportedEvents.contains(eventTypeClassName)
+    boolean isSupported = supportedEvents.contains(eventTypeClassName)
+    isSupported
   }
   
   @Override
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
-    supportsEventTypeClassName(eventType.class.name)
+    supportsEventTypeClassName(eventType.name)
   }
 
   @Override

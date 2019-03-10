@@ -168,15 +168,15 @@ class OkapiClient {
       } else {
         log.info "No config options specifying okapiHost and okapiPort found on startup."
       }
-//      execution.executor = new ThreadPoolExecutor(
-//        0,  // Min Idle threads.
-//        20, // 10 threads max.
-//        10, // 10 second wait.
-//        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
-//        new SynchronousQueue<Runnable>() // Use a synchronous queue
-//      )
-//      
-//      execution.maxThreads = 10
+      execution.executor = new ThreadPoolExecutor(
+        0,  // Min Idle threads.
+        10, // 10 threads max.
+        10, // 10 second wait.
+        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
+        new SynchronousQueue<Runnable>() // Use a synchronous queue
+      )
+      
+      execution.maxThreads = 10
       
       // Default sending type.
       request.contentType = JSON[0]

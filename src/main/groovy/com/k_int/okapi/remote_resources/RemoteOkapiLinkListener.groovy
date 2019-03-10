@@ -157,7 +157,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
         
         // Use the okapi client to fetch a completable future for the value.
         log.debug "prefetching uri ${uri}"
-        backGroundFetch = cacheValue( uri, okapiClient.get(uri) )
+        backGroundFetch = cacheValue( uri, okapiClient.getAsync(uri) )
       }
       
       // Add a metaproperty to the instance metaclass so we can access it later :)

@@ -84,7 +84,6 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   
   private ConcurrentHashMap<String, Boolean> validSourceCache = [:] as ConcurrentHashMap<String, Boolean>
   
-  @Memoized
   protected boolean isValidSource(AbstractPersistenceEvent event) {
     Object source = event.source
     

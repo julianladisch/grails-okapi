@@ -138,7 +138,7 @@ class OkapiClient {
     }
     
     // If there is a proxy... We should use that, but only if we have picked up an OKAPI request.
-    if (proxyHost) {
+    if (!(okapiHost && okapiPort) && proxyHost) {
       String[] parts = proxyHost.split(':')
       
       log.debug "Proxy present... Changing host to ${parts[0]}"

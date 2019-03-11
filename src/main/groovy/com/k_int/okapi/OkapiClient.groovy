@@ -170,13 +170,11 @@ class OkapiClient {
       }
       execution.executor = new ThreadPoolExecutor(
         0,  // Min Idle threads.
-        10, // 10 threads max.
+        50, // 100 threads max.
         10, // 10 second wait.
         TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
         new SynchronousQueue<Runnable>() // Use a synchronous queue
       )
-      
-      execution.maxThreads = 10
       
       // Default sending type.
       request.contentType = JSON[0]
@@ -184,6 +182,13 @@ class OkapiClient {
       // Register vnd.api+json as parsable json.
       response.parser(EXTRA_JSON_TYPES) { HttpConfig cfg, FromServer fs ->
         NativeHandlers.Parsers.json(cfg, fs)
+      }
+      
+      
+      // Add timeouts.
+      client.clientCustomizer { HttpURLConnection conn ->
+        conn.connectTimeout = 2000
+        conn.readTimeout = 3000
       }
     }
     

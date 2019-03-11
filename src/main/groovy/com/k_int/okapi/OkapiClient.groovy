@@ -91,7 +91,7 @@ class OkapiClient {
     
     final Map theMap = [
       "okapi-url": requestObject?.getHeader(OkapiHeaders.URL),
-      "proxy-host": (requestObject?.getHeader(OkapiHeaders.REQUEST_ID) ? requestObject?.getHeader('host') : null),
+//      "proxy-host": (requestObject?.getHeader(OkapiHeaders.REQUEST_ID) ? requestObject?.getHeader('host') : null),
       "headers" : [:]
     ]
     
@@ -121,11 +121,11 @@ class OkapiClient {
   private void addConfig (final HttpConfig cfg, final Map cfgMap) {
     
     // Url...
-    addUrl(cfg, cfgMap['okapi-url'], cfgMap['proxy-host'])
+    addUrl(cfg, cfgMap['okapi-url'])
     cfg.request.headers = cfgMap['headers']
   }
   
-  private void addUrl (final HttpConfig cfg, final String url, final String proxyHost) {
+  private void addUrl (final HttpConfig cfg, final String url) {
     // Set the URL
     if (url) {
       log.debug "Setting url to: ${url}"
@@ -138,17 +138,17 @@ class OkapiClient {
     }
     
     // If there is a proxy... We should use that, but only if we have picked up an OKAPI request.
-    if (!(okapiHost && okapiPort) && proxyHost) {
-      String[] parts = proxyHost.split(':')
-      
-      log.debug "Proxy present... Changing host to ${parts[0]}"
-      cfg.request.uri.host = parts[0]
-      
-      if (parts.length > 1) {
-        log.debug "\t...and port to ${parts[1]}"
-        cfg.request.uri.port = (parts[1] as Integer)
-      }
-    }
+//    if (!(okapiHost && okapiPort) && proxyHost) {
+//      String[] parts = proxyHost.split(':')
+//      
+//      log.debug "Proxy present... Changing host to ${parts[0]}"
+//      cfg.request.uri.host = parts[0]
+//      
+//      if (parts.length > 1) {
+//        log.debug "\t...and port to ${parts[1]}"
+//        cfg.request.uri.port = (parts[1] as Integer)
+//      }
+//    }
     
     log.debug "Url is now ${cfg.request.uri.toURI()}"
   }

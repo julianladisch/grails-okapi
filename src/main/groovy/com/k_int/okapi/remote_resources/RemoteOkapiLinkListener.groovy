@@ -12,7 +12,8 @@ import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEvent
 import org.springframework.context.ConfigurableApplicationContext
-
+import org.springframework.web.context.request.RequestAttributes
+import org.springframework.web.context.request.RequestContextHolder
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
 import grails.web.api.ServletAttributes
@@ -186,6 +187,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     requestCache?.get(key)
   }
   
+  private static final Set<String> ALLOWED_ACTIONS = ['show',  'update', 'save', 'create'] as Set<String> 
   /**
    * {@inheritDoc}
    * @see org.springframework.context.ApplicationListener#onApplicationEvent(
@@ -194,7 +196,13 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   @Override
   public final void onApplicationEvent(ApplicationEvent e) {
     if(e instanceof AbstractPersistenceEvent) {
-
+      RequestAttributes rAttr = RequestContextHolder.getRequestAttributes()
+      
+      if (rAttr == null || !ALLOWED_ACTIONS.contains(actionName)) {
+        log.debug "Skipping because ${!rAttr ? 'no request' : 'action ' + actionName + ' is not in list'}"
+        return
+      } 
+      
       AbstractPersistenceEvent event = (AbstractPersistenceEvent)e;
       if(!isValidSource(event)) {
         return

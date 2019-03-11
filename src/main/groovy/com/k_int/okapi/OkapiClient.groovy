@@ -120,8 +120,10 @@ class OkapiClient {
   
   private void addConfig (final HttpConfig cfg, final Map cfgMap) {
     
-    // Url...
-    addUrl(cfg, cfgMap['okapi-url'])
+    // If we have no config values then let's use okapi-url if present.
+    if (!(okapiHost && okapiPort)) {
+      addUrl(cfg, cfgMap['okapi-url'])
+    }
     cfg.request.headers = cfgMap['headers']
   }
   

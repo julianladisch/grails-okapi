@@ -37,7 +37,8 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   
   def profiles = ['web']
   def loadAfter = [
-    'springSecurityCore'
+    'springSecurityCore',
+    'hibernate'
   ]
 
   // License: one of 'APACHE', 'GPL2', 'GPL3'

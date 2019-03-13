@@ -1,35 +1,25 @@
 package com.k_int.okapi.remote_resources;
 
 
+import java.util.concurrent.ConcurrentHashMap
+
 import org.grails.datastore.gorm.jdbc.schema.SchemaHandler
-import org.grails.datastore.mapping.core.connections.ConnectionSource
-import org.grails.datastore.mapping.core.connections.ConnectionSourcesListener
-import org.grails.datastore.mapping.core.connections.SingletonConnectionSources
 import org.grails.datastore.mapping.engine.event.*
-import org.grails.datastore.mapping.model.PersistentEntity
-import org.grails.datastore.mapping.model.PersistentProperty
-import org.grails.datastore.mapping.model.types.Association
 import org.grails.orm.hibernate.AbstractHibernateDatastore
-import org.grails.orm.hibernate.HibernateDatastore
-import org.grails.orm.hibernate.HibernateGormEnhancer
 import org.grails.orm.hibernate.connections.HibernateConnectionSource
-import org.grails.orm.hibernate.connections.HibernateConnectionSourceSettings
-import org.hibernate.SessionFactory
 import org.springframework.beans.BeanUtils
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEvent
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.web.context.request.RequestAttributes
 import org.springframework.web.context.request.RequestContextHolder
+
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
+
 import grails.web.api.ServletAttributes
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
 import groovy.util.logging.Slf4j
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ConcurrentHashMap
-import net.sf.ehcache.CacheManager
 
 @CompileStatic
 @Slf4j
@@ -42,11 +32,13 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   // The value will either be a boolean FALSE or a set of properties to act on.
   private final Map<Class, ?> linkedProperties = new ConcurrentHashMap<Class, ?> ()
   
-  protected final Set<String> datasourceNames = []
+  protected final Set<String> datasourceNames = ConcurrentHashMap.newKeySet() 
   
   public static void register (final AbstractHibernateDatastore datastore, final ConfigurableApplicationContext applicationContext) {
     
     if (!singleton) {
+      // Create the listener
+      singleton = new RemoteOkapiLinkListener( applicationContext )
     
       log.debug "Adding RemoteOkapiLinkListener for datastore ${datastore}'s children"
       
@@ -61,8 +53,6 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       def okapiSchemas = schemaHandler.resolveSchemaNames(hcs.dataSource).findResults { OkapiTenantResolver.isValidTenantSchemaName( it ) ? it : null }
       
       if (okapiSchemas) {
-        // Create the listener
-        RemoteOkapiLinkListener singleton = new RemoteOkapiLinkListener( applicationContext )
         
         // Add all Okapi schema names. 
         for (String schema : okapiSchemas) {
@@ -73,31 +63,22 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
           log.debug "\t...watching ${ds.dataSourceName}"
         }
       }
-      
-      // Also listen for new sources.
-      listenForNewSources (datastore)
     } else {
       log.warn "Application listener already exists. Not adding again."
     }
-  }
-  
-  private static void listenForNewSources (final AbstractHibernateDatastore datastore) {
-    datastore.connectionSources.addListener(new ConnectionSourcesListener<SessionFactory, HibernateConnectionSourceSettings>() {
-      @Override
-      public void newConnectionSource(ConnectionSource<SessionFactory, HibernateConnectionSourceSettings> connectionSource) {
-        log.debug "New connectionsource ${connectionSource.name} added. Registering with this listener."
-        singleton.datasourceNames << connectionSource.name
-      }
-    });
   }
   
   private RemoteOkapiLinkListener(final ConfigurableApplicationContext applicationContext) {
     
     // Just fetch the bean.
     this.okapiClient = applicationContext.getBean('okapiClient', OkapiClient)
-    
+        
     // Add to the app context.
     applicationContext.addApplicationListener ( this )
+  }
+  
+  public static void listenForConnectionSourceName(final String connName) {
+    singleton.datasourceNames << connName
   }
   
   private ConcurrentHashMap<String, Boolean> validSourceCache = [:] as ConcurrentHashMap<String, Boolean>
@@ -152,7 +133,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       return
     }
     
-    // From now on we know we want to prefetch some things.
+    // From now on we know we want to pre-fetch some things.
     // Hand off to the decorator.
     decorateObject(obj, propertyNames)
     

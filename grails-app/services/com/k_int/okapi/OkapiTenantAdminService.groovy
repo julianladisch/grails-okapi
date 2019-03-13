@@ -5,7 +5,7 @@ import javax.sql.DataSource
 import org.grails.datastore.mapping.core.exceptions.ConfigurationException
 import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
-
+import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import grails.converters.*
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
@@ -35,6 +35,9 @@ class OkapiTenantAdminService implements EventPublisher {
         // This is called in updateAccountSchema too - don't think we should call it twice
         // hibernateDatastore.addTenantForSchema(new_schema_name)
         notify("okapi:tenant_schema_created", new_schema_name)
+        
+        // Having trouble catching the event in the global listener. Call directly for now.
+        RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
       }
   }
 

@@ -2,12 +2,19 @@ package com.k_int.okapi.remote_resources;
 
 
 import org.grails.datastore.gorm.jdbc.schema.SchemaHandler
+import org.grails.datastore.mapping.core.connections.ConnectionSource
+import org.grails.datastore.mapping.core.connections.ConnectionSourcesListener
+import org.grails.datastore.mapping.core.connections.SingletonConnectionSources
 import org.grails.datastore.mapping.engine.event.*
 import org.grails.datastore.mapping.model.PersistentEntity
 import org.grails.datastore.mapping.model.PersistentProperty
 import org.grails.datastore.mapping.model.types.Association
 import org.grails.orm.hibernate.AbstractHibernateDatastore
+import org.grails.orm.hibernate.HibernateDatastore
+import org.grails.orm.hibernate.HibernateGormEnhancer
 import org.grails.orm.hibernate.connections.HibernateConnectionSource
+import org.grails.orm.hibernate.connections.HibernateConnectionSourceSettings
+import org.hibernate.SessionFactory
 import org.springframework.beans.BeanUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationEvent
@@ -55,20 +62,33 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       
       if (okapiSchemas) {
         // Create the listener
-        RemoteOkapiLinkListener listener = new RemoteOkapiLinkListener( applicationContext )
+        RemoteOkapiLinkListener singleton = new RemoteOkapiLinkListener( applicationContext )
         
         // Add all Okapi schema names. 
         for (String schema : okapiSchemas) {
           final AbstractHibernateDatastore ds = datastore.getDatastoreForConnection ( schema )
   
           // For this listener we use the datasource name.
-          listener.datasourceNames << ds.dataSourceName
+          singleton.datasourceNames << ds.dataSourceName
           log.debug "\t...watching ${ds.dataSourceName}"
         }
       }
+      
+      // Also listen for new sources.
+      listenForNewSources (datastore)
     } else {
       log.warn "Application listener already exists. Not adding again."
     }
+  }
+  
+  private static void listenForNewSources (final AbstractHibernateDatastore datastore) {
+    datastore.connectionSources.addListener(new ConnectionSourcesListener<SessionFactory, HibernateConnectionSourceSettings>() {
+      @Override
+      public void newConnectionSource(ConnectionSource<SessionFactory, HibernateConnectionSourceSettings> connectionSource) {
+        log.debug "New connectionsource ${connectionSource.name} added. Registering with this listener."
+        singleton.datasourceNames << connectionSource.name
+      }
+    });
   }
   
   private RemoteOkapiLinkListener(final ConfigurableApplicationContext applicationContext) {
@@ -78,9 +98,6 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     
     // Add to the app context.
     applicationContext.addApplicationListener ( this )
-    
-    // Flag the singleton.
-    singleton = this
   }
   
   private ConcurrentHashMap<String, Boolean> validSourceCache = [:] as ConcurrentHashMap<String, Boolean>

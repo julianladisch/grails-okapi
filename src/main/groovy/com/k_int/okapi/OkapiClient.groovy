@@ -171,10 +171,10 @@ class OkapiClient {
         log.info "No config options specifying okapiHost and okapiPort found on startup."
       }
       execution.executor = new ThreadPoolExecutor(
-        0,  // Min Idle threads.
+        3,  // Min Idle threads.
         50, // 100 threads max.
-        10, // 10 second wait.
-        TimeUnit.SECONDS, // Makes the above wait time in 'seconds'
+        1200, // 1.2 second wait.
+        TimeUnit.MILLISECONDS, // Makes the above wait time in 'seconds'
         new SynchronousQueue<Runnable>() // Use a synchronous queue
       )
       

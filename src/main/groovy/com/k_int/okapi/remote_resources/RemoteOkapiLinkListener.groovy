@@ -138,7 +138,10 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     decorateObject(obj, propertyNames)
     
     // We should also cache this.
-    if (value != propertyNames) linkedProperties[ obj.class ] = propertyNames
+    if (value != propertyNames) {
+      linkedProperties[ obj.class ] = propertyNames
+      log.debug "Cached ${propertyNames} for ${obj.class}"
+    }
   }
   
   public static final String FETCHED_PROPERTY_SUFFIX = '_object'
@@ -197,7 +200,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       RequestAttributes rAttr = RequestContextHolder.getRequestAttributes()
       
       if (rAttr == null || !ALLOWED_ACTIONS.contains(actionName)) {
-        log.debug "Skipping because ${!rAttr ? 'no request' : 'action ' + actionName + ' is not in list'}"
+        log.trace "Skipping because ${!rAttr ? 'no request' : 'action ' + actionName + ' is not in list'}"
         return
       } 
       

@@ -156,7 +156,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   public final void onApplicationEvent(ApplicationEvent e) {
     
     
-    log.debug "Caught Event: ${e} for source ${e.source}"
+//    log.debug "Caught Event: ${e} for source ${e.source}"
     if(e instanceof AbstractPersistenceEvent) {
       RequestAttributes rAttr = RequestContextHolder.getRequestAttributes()
       
@@ -193,8 +193,8 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   
   @Override
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
-//    supportsEventTypeClassName(eventType.name)
-    true
+    supportsEventTypeClassName(eventType.name)
+//    true
   }
 
   @Override

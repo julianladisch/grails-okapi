@@ -95,6 +95,8 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     isValid
   }
   
+  
+  public static final String FETCHED_PROPERTY_SUFFIX = '_object'
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
     AbstractHibernateDatastore es = (AbstractHibernateDatastore) event.source
     Map<String, String> propertyNames = [:]
@@ -135,57 +137,13 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     
     // From now on we know we want to pre-fetch some things.
     // Hand off to the decorator.
-    decorateObject(obj, propertyNames)
+    okapiClient.decorateWithRemoteObject(obj, propertyNames, FETCHED_PROPERTY_SUFFIX)
     
     // We should also cache this.
     if (value != propertyNames) {
       linkedProperties[ obj.class ] = propertyNames
       log.debug "Cached ${propertyNames} for ${obj.class}"
     }
-  }
-  
-  public static final String FETCHED_PROPERTY_SUFFIX = '_object'
-  private void decorateObject (def obj, Map<String,String> propertyNames) {
-    log.debug "decorator called for ${obj}"
-    propertyNames.each { propName, location ->
-      final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
-      
-      log.debug "checking request cache..."
-      def backGroundFetch = retrieveCacheValue( uri )
-      
-      if (!backGroundFetch) {
-        log.debug "not found actually request the resource..."
-        
-        // Use the okapi client to fetch a completable future for the value.
-        log.debug "prefetching uri ${uri}"
-        backGroundFetch = cacheValue( uri, okapiClient.getAsync(uri) )
-      }
-      
-      // Add a metaproperty to the instance metaclass so we can access it later :)
-      log.debug "adding property ${propName}${FETCHED_PROPERTY_SUFFIX}"
-      obj.metaClass["${propName}${FETCHED_PROPERTY_SUFFIX}"] = backGroundFetch
-    }
-  }
-  
-  
-  private def cacheValue(final String key, final def value) {
-    if (request) {
-      // Cache the value.
-      Map<String, ?> requestCache = request.getAttribute(this.class.name) as Map<String, ?>
-      if (requestCache == null) {
-        requestCache = [:]
-        request.setAttribute(this.class.name, requestCache)
-      }
-      requestCache[key] = value
-    }
-    
-    value
-  }
-  
-  private def retrieveCacheValue(final String key) {
-    // Grab the value from the cache.
-    Map<String, ?> requestCache = request?.getAttribute(this.class.name) as Map<String, ?>
-    requestCache?.get(key)
   }
   
   private static final Set<String> ALLOWED_ACTIONS = ['show',  'update', 'save', 'create'] as Set<String> 
@@ -196,6 +154,9 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
    */
   @Override
   public final void onApplicationEvent(ApplicationEvent e) {
+    
+    
+    log.debug "Caught Event: ${e} for source ${e.source}"
     if(e instanceof AbstractPersistenceEvent) {
       RequestAttributes rAttr = RequestContextHolder.getRequestAttributes()
       
@@ -216,6 +177,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
       if (event.isListenerExcluded(getClass().getName())) {
         return
       }
+      
       onPersistenceEvent(event)
     }
   }
@@ -231,7 +193,8 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   
   @Override
   public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
-    supportsEventTypeClassName(eventType.name)
+//    supportsEventTypeClassName(eventType.name)
+    true
   }
 
   @Override

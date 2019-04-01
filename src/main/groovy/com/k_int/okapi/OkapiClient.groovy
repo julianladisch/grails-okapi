@@ -14,10 +14,11 @@ import javax.servlet.http.HttpServletRequest
 import org.grails.datastore.mapping.multitenancy.exceptions.TenantNotFoundException
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
+import org.grails.web.servlet.mvc.GrailsWebRequest
 import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-
+import org.springframework.web.context.request.RequestContextHolder
 import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
 import grails.util.Metadata
@@ -70,13 +71,56 @@ class OkapiClient {
   }
   
   private final HttpServletRequest getRequestObject() {
-    try {
-      
-      return WebUtils.retrieveGrailsWebRequest()?.currentRequest
-      
-    } catch(IllegalStateException e) {
+    GrailsWebRequest gwr = (GrailsWebRequest)RequestContextHolder.requestAttributes
+    if (!gwr) {
       log.debug "No request present."
     }
+    
+    gwr?.currentRequest
+  }
+  
+  public void decorateWithRemoteObject (final def obj, final Map<String,String> propertyNamesAndLocations, final String suffix) {
+    log.debug "decorator called for ${obj}"
+    propertyNamesAndLocations.each { propName, location ->
+      final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
+      
+      log.debug "checking request cache..."
+      def backGroundFetch = retrieveCacheValue( uri )
+      
+      if (!backGroundFetch) {
+        log.debug "not found actually request the resource..."
+        
+        // Use the okapi client to fetch a completable future for the value.
+        log.debug "prefetching uri ${uri}"
+        backGroundFetch = cacheValue( uri, getAsync(uri) )
+      }
+      
+      // Add a metaproperty to the instance metaclass so we can access it later :)
+      log.debug "adding property ${propName}${suffix}"
+      obj.metaClass["${propName}${suffix}"] = backGroundFetch
+    }
+  }
+  
+  
+  private def cacheValue(final String key, final def value) {
+    def req = requestObject
+    if (req) {
+      // Cache the value.
+      Map<String, ?> requestCache = req.getAttribute(this.class.name) as Map<String, ?>
+      if (requestCache == null) {
+        requestCache = [:]
+        req.setAttribute(this.class.name, requestCache)
+      }
+      requestCache[key] = value
+    }
+    
+    value
+  }
+  
+  private def retrieveCacheValue(final String key) {
+    // Grab the value from the cache.
+    Map<String, ?> requestCache = requestObject?.getAttribute(this.class.name) as Map<String, ?>
+    requestCache?.get(key)
   }
   
   private final Map mapFromRequest() {

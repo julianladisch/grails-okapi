@@ -5,11 +5,12 @@ import org.grails.orm.hibernate.HibernateDatastore
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.security.Http401AuthenticationEntryPoint
 import org.springframework.boot.web.servlet.FilterRegistrationBean
+import com.k_int.okapi.remote_resources.OkapiLookupHelper
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.okapi.springsecurity.OkapiAuthAwareAccessDeniedHandler
 import com.k_int.okapi.springsecurity.OkapiAuthenticationFilter
 import com.k_int.okapi.springsecurity.OkapiAuthenticationProvider
-
+import grails.core.GrailsClass
 import grails.plugin.springsecurity.SecurityFilterPosition
 import grails.plugin.springsecurity.SpringSecurityUtils
 import grails.plugins.*
@@ -81,6 +82,17 @@ class GrailsOkapiGrailsPlugin extends Plugin {
 
     }
   }
+  
+  
+  
+  @Override
+  void doWithDynamicMethods() {
+    // Bind extra methods to the class.
+    (grailsApplication.getArtefacts("Domain")).each {GrailsClass gc ->
+      OkapiLookupHelper.addMethods(gc)
+    }
+  }
+  
   void doWithApplicationContext() {
     // Register this filter first.
     if (pluginManager.hasGrailsPlugin('springSecurityCore')) {

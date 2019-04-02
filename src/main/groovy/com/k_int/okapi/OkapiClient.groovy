@@ -4,6 +4,8 @@ import static groovyx.net.http.ContentTypes.JSON
 import static groovyx.net.http.HttpBuilder.configure
 
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Future
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -23,6 +25,8 @@ import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
 import grails.util.Metadata
 import groovy.json.JsonSlurper
+import groovy.text.SimpleTemplateEngine
+import groovy.text.Template
 import groovy.util.logging.Slf4j
 import groovyx.net.http.FromServer
 import groovyx.net.http.HttpBuilder
@@ -33,6 +37,8 @@ import groovyx.net.http.UriBuilder
 
 @Slf4j
 class OkapiClient {
+  
+  private SimpleTemplateEngine tmplEng = new SimpleTemplateEngine()
   
   private static final List<String> EXTRA_JSON_TYPES = [
     'application/vnd.api+json'
@@ -79,7 +85,55 @@ class OkapiClient {
     gwr?.currentRequest
   }
   
-  public void decorateWithRemoteObject (final def obj, final Map<String,String> propertyNamesAndLocations, final String suffix) {
+  private final Map <String, Template> templateMap = new ConcurrentHashMap<String, Template>()
+  public void decorateWithRemoteObjectFetcher (final def obj, final String methodName, final String uriTemplate, final Closure converter) {
+    log.debug "Adding method ${methodName} to ${obj}"
+    // Create the method closure base.
+    final Closure metaMethod = { Template tmpl, Closure conv ->
+      
+      // Pipe in the current delegate as 'obj'
+      final String uri = tmpl.make(['obj': delegate])
+      log.debug "Fetching ${uri} ..."
+      
+      log.debug "checking request cache..."
+      def backGroundFetch = retrieveCacheValue( uri )
+      
+      if (!backGroundFetch) {
+        log.debug "not found actually request the resource..."
+        
+        // Use the okapi client to fetch a completeable future for the value.
+        log.debug "prefetching uri ${uri}"
+        backGroundFetch = cacheValue( uri, getAsync(uri) )
+      }
+      
+      if (backGroundFetch instanceof CompletableFuture) {
+        CompletableFuture fut = backGroundFetch
+        backGroundFetch = fut.thenApply({response -> 
+          if (converter) {
+            return converter( response )
+          }
+          
+          // Default to returning the object.
+          response
+        })
+      }
+
+      // Return the fetch...
+      backGroundFetch
+    }
+    
+    // Fetch or create the template.
+    final String uri = uriTemplate.replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1')
+    Template template = templateMap[uri]
+    if (!template) {
+      template = tmplEng.createTemplate(uri)
+    }
+    
+    // Bind as a meta method.
+    obj.metaClass[methodName] = metaMethod.curry(template, converter)
+  }
+  
+  public void decorateWithRemoteObjects (final def obj, final Map<String,String> propertyNamesAndLocations, final String suffix) {
     log.debug "decorator called for ${obj}"
     propertyNamesAndLocations.each { propName, location ->
       final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
@@ -90,7 +144,7 @@ class OkapiClient {
       if (!backGroundFetch) {
         log.debug "not found actually request the resource..."
         
-        // Use the okapi client to fetch a completable future for the value.
+        // Use the okapi client to fetch a completeable future for the value.
         log.debug "prefetching uri ${uri}"
         backGroundFetch = cacheValue( uri, getAsync(uri) )
       }

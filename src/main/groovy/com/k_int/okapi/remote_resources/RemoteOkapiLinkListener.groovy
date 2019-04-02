@@ -137,7 +137,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     
     // From now on we know we want to pre-fetch some things.
     // Hand off to the decorator.
-    okapiClient.decorateWithRemoteObject(obj, propertyNames, FETCHED_PROPERTY_SUFFIX)
+    okapiClient.decorateWithRemoteObjects(obj, propertyNames, FETCHED_PROPERTY_SUFFIX)
     
     // We should also cache this.
     if (value != propertyNames) {

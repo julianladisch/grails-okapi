@@ -91,8 +91,10 @@ class OkapiClient {
     // Create the method closure base.
     final Closure metaMethod = { Template tmpl, Closure conv ->
       
+      final def _me = delegate
+      
       // Pipe in the current delegate as 'obj'
-      final String uri = tmpl.make(['obj': delegate])
+      final String uri = tmpl.make(['obj': _me])
       log.debug "Fetching ${uri} ..."
       
       log.debug "checking request cache..."
@@ -110,7 +112,7 @@ class OkapiClient {
         CompletableFuture fut = backGroundFetch
         backGroundFetch = fut.thenApply({response -> 
           if (converter) {
-            return converter( response )
+            return converter.rehydrate(_me, _me, _me)( response )
           }
           
           // Default to returning the object.

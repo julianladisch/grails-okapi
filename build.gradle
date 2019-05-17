@@ -11,7 +11,7 @@ buildscript {
 
 }
 
-version "3.5.1"
+version "3.5.3"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
@@ -57,7 +57,7 @@ dependencies {
   provided "org.hibernate:hibernate-core:5.1.16.Final"
   provided 'org.grails.plugins:spring-security-core:3.2.0'
   provided 'org.grails.plugins:database-migration:3.0.3'
-  provided 'com.k_int.grails:web-toolkit-ce:3.3.24'
+  provided 'com.k_int.grails:web-toolkit-ce:3.4.4'
   provided "org.hibernate:hibernate-core:5.1.16.Final"
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
 }

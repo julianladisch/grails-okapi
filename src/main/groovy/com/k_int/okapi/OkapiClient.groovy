@@ -461,12 +461,12 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }
   
-  public final def get (final String uri, final Map params = null, final Closure expand = null) {
+  public final def getSync (final String uri, final Map params = null, final Closure expand = null) {
     
     final Map rm = mapFromRequest()
     client.get({
@@ -477,7 +477,7 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }
@@ -494,7 +494,7 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }
@@ -511,7 +511,7 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }
@@ -528,7 +528,7 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }
@@ -545,7 +545,7 @@ class OkapiClient {
       addConfig(delegate, rm)
       
       if (expand) {
-        expand.rehydrate(delegate, owner, thisObject)()
+        expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
   }

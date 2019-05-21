@@ -112,7 +112,7 @@ class ResourceProxyController {
     final HttpServletResponse clientResponse = getResponse()
     
     try {
-      okapiClient.get( uri, proxyParams ) {
+      okapiClient.getSync( uri, proxyParams ) {
         delegate.response.parser('*/*') { ChainedHttpConfig cfg, FromServer fs ->
           clientResponse.setStatus(fs.statusCode)
           IOUtils.copy(fs.inputStream, clientResponse.outputStream)

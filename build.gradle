@@ -11,7 +11,7 @@ buildscript {
 
 }
 
-version "3.5.4"
+version "3.5.5"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
@@ -20,6 +20,11 @@ apply plugin:"org.grails.grails-plugin-publish"
 apply plugin:"org.grails.grails-gsp"
 apply plugin:"org.grails.plugins.views-json"
 
+eclipse {
+  classpath {
+    defaultOutputDir = file('bin/main')
+  }
+}
 
 repositories {
   mavenLocal()

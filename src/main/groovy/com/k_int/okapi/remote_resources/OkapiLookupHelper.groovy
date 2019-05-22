@@ -19,26 +19,39 @@ import org.grails.datastore.mapping.model.PersistentEntity
 public class OkapiLookupHelper {
   
   private static OkapiClient okapiClient = null
-  public static OkapiClient getOkapiClient() {
+  private static OkapiClient getOkapiClient() {
     if (!okapiClient) {
-      okapiClient = Holders.applicationContext.getBean('okapiClient') as OkapiClient
+      okapiClient = getGrailsApplication().mainContext.getBean('okapiClient') as OkapiClient
     }
     okapiClient
   }
-  
-  public static void addMethods (GrailsClass gc) {
-    PersistentEntity pe = DomainUtils.resolveDomainClass(gc)
-    if (pe) {
-      addMethods(pe)
+  private static GrailsApplication grailsApplication = null
+  private static GrailsApplication setGrailsApplication(GrailsApplication grApp) {
+    grailsApplication = grApp
+  }
+  private static GrailsApplication getGrailsApplication() {
+    if (grailsApplication) {
+      grailsApplication = Holders.grailsApplication
     }
   }
   
-  public static void addMethods (PersistentEntity pe) {
+  public static void addMethods (final GrailsClass gc, final GrailsApplication grailsApplication = null) {
+    PersistentEntity pe = DomainUtils.resolveDomainClass(gc)
+    if (pe) {
+      addMethods(pe, grailsApplication)
+    }
+  }
+  
+  public static void addMethods (final PersistentEntity pe, final GrailsApplication grailsApplication = null) {
+    
+    if (grailsApplication) {
+      OkapiLookupHelper.grailsApplication = grailsApplication
+    }
+    
     // Excludes.
     final Set<Class<?>> excludes = [RemoteOkapiLink] as Set
 
     final Class<?> targetClass = pe.javaClass
-    final GrailsApplication grailsApplication = Holders.grailsApplication
 
     if ( !excludes.find { it.isAssignableFrom(targetClass) } ) {
 

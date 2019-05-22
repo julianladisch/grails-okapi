@@ -83,13 +83,11 @@ class GrailsOkapiGrailsPlugin extends Plugin {
     }
   }
   
-  
-  
   @Override
   void doWithDynamicMethods() {
     // Bind extra methods to the class.
     (grailsApplication.getArtefacts("Domain")).each {GrailsClass gc ->
-      OkapiLookupHelper.addMethods(gc)
+      OkapiLookupHelper.addMethods(gc, grailsApplication)
     }
   }
   

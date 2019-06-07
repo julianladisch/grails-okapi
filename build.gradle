@@ -11,13 +11,12 @@ buildscript {
 
 }
 
-version "3.5.5"
+version "3.6.0"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
 apply plugin:"org.grails.grails-plugin"
 apply plugin:"org.grails.grails-plugin-publish"
-apply plugin:"org.grails.grails-gsp"
 apply plugin:"org.grails.plugins.views-json"
 
 eclipse {
@@ -65,6 +64,9 @@ dependencies {
   provided 'com.k_int.grails:web-toolkit-ce:3.5.0'
   provided "org.hibernate:hibernate-core:5.1.16.Final"
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.3'
+  compile 'org.spockframework:spock-core'
+  compile "org.grails.plugins:geb"
+  compile "org.seleniumhq.selenium:selenium-htmlunit-driver:2.47.1"
 }
 
 bootRun {

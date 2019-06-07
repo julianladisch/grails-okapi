@@ -1,30 +1,63 @@
 package com.k_int.okapi
 
 import java.sql.ResultSet
+
 import javax.sql.DataSource
+
 import org.grails.datastore.mapping.core.exceptions.ConfigurationException
 import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
+
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
+
 import grails.converters.*
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import grails.rest.*
+import grails.util.GrailsNameUtils
 import groovy.sql.Sql
 
 class OkapiTenantAdminService implements EventPublisher {
+  
+  private static final String TENANT_MODULE_FROM = 'module_from'
+  private static final String TENANT_MODULE_TO = 'module_to'
+  private static final String TENANT_MODULE_PARAMETERS = 'parameters'
 
   HibernateDatastore hibernateDatastore
   def dataSource
   GrailsApplication grailsApplication
 
-  public synchronized void createTenant(String tenantId) {
-
+  private static final Set<String> parameter_excludes = ['controller', 'action', 'method']
+  private handleTenantParameters ( final String tenantId, final Map tenantData ) {
+    final List<Map> params = tenantData?.get(TENANT_MODULE_PARAMETERS)
+    if (params) {
+      final String event_prefix  = 'okapi:tenant_' 
+      
+      final String from = tenantData[TENANT_MODULE_FROM]
+      final String to = tenantData[TENANT_MODULE_TO]
+      final boolean update = from as boolean
+      final boolean existing_tenant = tenantData.existing_tenant
+      
+      params.each { Map<String,String> entry ->
+        final String key = entry?.key?.trim()
+        if (!parameter_excludes.contains(key) && key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
+          final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"
+          
+          log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"
+          notify (event_name, tenantId, entry.value, existing_tenant, update, to, from)
+        }
+      }
+    }
+  }
+    
+  public synchronized void enableTenant( final String tenantId, final Map tenantData = null ) {
+      tenantData.existing_tenant = false
       String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)
         log.debug("Module already registered for tenant")
+        tenantData.existing_tenant = true
       }
       catch ( ConfigurationException ce ) {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
@@ -39,6 +72,9 @@ class OkapiTenantAdminService implements EventPublisher {
         // Having trouble catching the event in the global listener. Call directly for now.
         RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
       }
+      
+      handleTenantParameters( tenantId, tenantData )
+      notify("okapi:tenant_enabled", tenantId)
   }
 
   synchronized void createAccountSchema(String tenantId) {
@@ -55,8 +91,8 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
 
-  synchronized void dropTenant(String tenantId) {
-    log.debug("TenantAdminService::dropTenant(${tenantId})")
+  synchronized void purgeTenant(String tenantId) {
+    log.debug("TenantAdminService::purgeTenant(${tenantId})")
     Sql sql = null
     String schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId)
     try {
@@ -67,10 +103,16 @@ class OkapiTenantAdminService implements EventPublisher {
       }
       
       allTenantIds.remove(tenantId)
-      notify("okapi:tenant_dropped", schema_name)
+      notify("okapi:tenant_purged", schema_name)
     } finally {
         sql?.close()
     }
+  }
+  
+  synchronized void disableTenant(String tenantId) {
+    log.debug("TenantAdminService::disableTenant(${tenantId})")
+    /* NOOP Just raise an event */
+    notify("okapi:tenant_disabled", tenantId)
   }
   
   private static Set<Serializable> allTenantIdentifiers = null
@@ -113,7 +155,6 @@ class OkapiTenantAdminService implements EventPublisher {
     
     allTenantSchemaIdentifiers
   }
-  
 
   synchronized void freshenAllTenantSchemas() {
     log.debug("freshenAllTenantSchemas()")

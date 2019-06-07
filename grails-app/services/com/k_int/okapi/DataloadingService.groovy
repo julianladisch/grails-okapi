@@ -107,7 +107,7 @@ public class DataloadingService implements EventPublisher, DataBinder {
     final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
     
     log.debug("RefdataService::onTenantLoadReference(${tenantId}, ${value}, ${existing_tenant}, ${upgrading}, ${toVersion}, ${fromVersion})")
-    GrailsDomainRefdataHelpers.setDefaultsForTenant(schemaName)
+    if (!existing_tenant) GrailsDomainRefdataHelpers.setDefaultsForTenant(schemaName)
     
     notify('okapi:dataload:reference', tenantId, value, existing_tenant, upgrading, toVersion, fromVersion)
   }

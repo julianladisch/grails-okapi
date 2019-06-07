@@ -1,7 +1,17 @@
 package com.k_int.okapi;
 
+import java.util.concurrent.ConcurrentHashMap
+
+import javax.annotation.PostConstruct
+
+import org.codehaus.groovy.control.CompilerConfiguration
+import org.codehaus.groovy.runtime.DefaultGroovyMethodsSupport
+import org.grails.io.support.PathMatchingResourcePatternResolver
+import org.grails.io.support.Resource
+
+import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
+
 import grails.core.GrailsApplication
-import grails.events.Event
 import grails.events.EventPublisher
 import grails.events.annotation.Subscriber
 import grails.gorm.multitenancy.Tenants
@@ -9,14 +19,6 @@ import grails.util.GrailsNameUtils
 import grails.web.databinding.DataBinder
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedQueue
-import javax.annotation.PostConstruct
-import org.codehaus.groovy.control.CompilerConfiguration
-import org.codehaus.groovy.runtime.DefaultGroovyMethodsSupport
-import org.grails.io.support.PathMatchingResourcePatternResolver
-import org.grails.io.support.Resource
-import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
 
 @CompileStatic
 @Slf4j

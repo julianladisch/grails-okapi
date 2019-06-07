@@ -8,10 +8,6 @@ class OkapiController {
   static responseFormats = ['json', 'xml']
   def okapiTenantAdminService
 
-
-  def index() { 
-  }
-
   // GET And DELETE verbs with header X-Okapi-Tenant indicate activation of this module for a given tenant.
   def tenant() {
     String tenant_id = request.getHeader(OkapiHeaders.TENANT)?.toLowerCase()

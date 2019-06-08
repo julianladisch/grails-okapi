@@ -6,15 +6,19 @@ import javax.annotation.PostConstruct
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.runtime.DefaultGroovyMethodsSupport
+import org.grails.datastore.gorm.GormEnhancer
+import org.grails.datastore.mapping.core.Datastore
+import org.grails.datastore.mapping.multitenancy.MultiTenantCapableDatastore
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
-
+import org.grails.orm.hibernate.HibernateDatastore
 import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
 
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import grails.events.annotation.Subscriber
 import grails.gorm.multitenancy.Tenants
+import grails.util.Environment
 import grails.util.GrailsNameUtils
 import grails.web.databinding.DataBinder
 import groovy.transform.CompileStatic
@@ -27,10 +31,10 @@ public class DataloadingService implements EventPublisher, DataBinder {
   GrailsApplication grailsApplication
   
   private static final String TENANT_FILE_PATH = '/sample_data'
-  private static final String TENANT_FILE_SUFFIX = 'Data'
+  private static final String TENANT_FILE_SUFFIX = 'data'
   private static final String DEFAULT_FILE = '_'
   
-  private final Map availableNames = new ConcurrentHashMap<String, String>()
+  private final Map<String, Resource> availableNames = new ConcurrentHashMap<String, Resource>()
   
   private PathMatchingResourcePatternResolver resolver
   
@@ -38,39 +42,55 @@ public class DataloadingService implements EventPublisher, DataBinder {
   private void init() {
     resolver = new PathMatchingResourcePatternResolver(grailsApplication.getClassLoader())
     log.info "Dataloading services started."
-    Resource[] resources = resolver.getResources("classpath*:${DataloadingService.TENANT_FILE_PATH}/*${DataloadingService.TENANT_FILE_SUFFIX}.groovy")
+    Resource[] resources = resolver.getResources("classpath*:${DataloadingService.TENANT_FILE_PATH}/${DEFAULT_FILE}${DataloadingService.TENANT_FILE_SUFFIX}.groovy") +  
+      resolver.getResources("classpath*:${DataloadingService.TENANT_FILE_PATH}/*-${DataloadingService.TENANT_FILE_SUFFIX}.groovy")
+    
     resources.each { Resource res ->
       log.info "Found Tenant file ${res.filename}"
-      def matches = res.filename =~ "^(\\w+)${DataloadingService.TENANT_FILE_SUFFIX}\\.groovy\$"
-      matches.each { List<String> groups ->
-        log.info "Adding ${groups[1].toLowerCase()} to available names."
-        availableNames[groups[1].toLowerCase()] = res
+      
+      // Special handling of default filename.
+      if (res.filename == '_data.groovy') {
+        log.info "Adding ${DEFAULT_FILE} to available names."
+        availableNames[DEFAULT_FILE] = res
+      } else {
+      
+        def matches = res.filename =~ "^([A-Za-z0-9-]+)-${DataloadingService.TENANT_FILE_SUFFIX}\\.groovy\$"
+        
+        if (matches) {
+          matches.each { List<String> groups ->
+            log.info "Adding ${groups[1].toLowerCase()} to available names."
+            availableNames[groups[1].toLowerCase()] = res
+          }
+        }
       }
     }
   }
   
   private Resource resolveTenantFile(final String tenantId, final String type) {
-    
     // The order to look for matches.
     final List<String> template_lookup = [
-      "${tenantId.toLowerCase()}-${type.toLowerCase()}".toString(),
-      tenantId.toLowerCase(),
-      DEFAULT_FILE
+      "${tenantId.toLowerCase()}-${Environment.getCurrent().name}-${type.toLowerCase()}".toString(),
+      "${tenantId.toLowerCase()}-${Environment.getCurrent().name}".toString(),
+      tenantId.toLowerCase()
     ]
     
     Resource file = null
     for (int i=0; !file && i<template_lookup.size(); i++) {
-      final String className = GrailsNameUtils.getNameFromScript(template_lookup[i])
+      final String name = template_lookup[i].toLowerCase().replaceAll(/[^A-Za-z0-9-]/, '-').replaceAll(/-{2,}/, '-')
       
-      log.info "Looking for ${template_lookup[i]} as ${className}"
-      
-      file = availableNames.containsKey(className) ? availableNames[className] : null
+      log.info "Looking for file for ${name}"
+      file = availableNames.containsKey(name) ? availableNames[name] : null
+    }
+    
+    if (!file && availableNames.containsKey(DEFAULT_FILE)) {
+      file = availableNames[DEFAULT_FILE]
     }
     
     file
   }
   
   private void executeTenantDataFile (final Resource res, final String tenantId, final Map vars = []) {
+    log.debug "executeTenantDataFile (${res}, ${tenantId}, ${vars})"
     BufferedReader br
     try {
       // Delegating script.
@@ -82,10 +102,11 @@ public class DataloadingService implements EventPublisher, DataBinder {
       // Reader. Needed as once the app is in a war the scripts will not be on the filesystem as such.
       br = new BufferedReader(new InputStreamReader(res.getInputStream()))
       
-      
       final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
-      DelegatingScript script = (DelegatingScript)shell.parse(br)
+      final DelegatingScript script = (DelegatingScript)shell.parse(br)
       script.setBinding(new Binding(vars))
+      HibernateDatastore datastore = GormEnhancer.findSingleDatastore() as HibernateDatastore 
+      
       Tenants.withId(schemaName) {
         script.setDelegate(delegate)
         script.run()
@@ -116,7 +137,7 @@ public class DataloadingService implements EventPublisher, DataBinder {
   public void onTenantLoadSample(final String tenantId, final String value, final boolean existing_tenant, final boolean upgrading, final String toVersion, final String fromVersion) {
     Resource res = resolveTenantFile(tenantId, value)
     
-    if (res.exists()) {
+    if (res?.exists()) {
       log.info "Resource ${res.filename} exists"
       executeTenantDataFile(res, tenantId, ['existing_tenant': existing_tenant, 'upgrade': upgrading, 'toVersion': toVersion, 'fromVersion': fromVersion])
     }

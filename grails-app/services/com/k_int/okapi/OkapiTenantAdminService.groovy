@@ -16,7 +16,9 @@ import grails.events.EventPublisher
 import grails.rest.*
 import grails.util.GrailsNameUtils
 import groovy.sql.Sql
+import groovy.util.logging.Slf4j
 
+@Slf4j
 class OkapiTenantAdminService implements EventPublisher {
   
   private static final String TENANT_MODULE_FROM = 'module_from'
@@ -28,24 +30,29 @@ class OkapiTenantAdminService implements EventPublisher {
   GrailsApplication grailsApplication
 
   private handleTenantParameters ( final String tenantId, final Map tenantData ) {
-    final List<Map> params = tenantData?.get(TENANT_MODULE_PARAMETERS)
-    if (params) {
-      final String event_prefix  = 'okapi:tenant_' 
-      
-      final String from = tenantData[TENANT_MODULE_FROM]
-      final String to = tenantData[TENANT_MODULE_TO]
-      final boolean update = from as boolean
-      final boolean existing_tenant = tenantData.existing_tenant
-      
-      params.each { Map<String,String> entry ->
-        final String key = entry?.key?.trim()
-        if (key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
-          final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"
-          
-          log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"
-          notify (event_name, tenantId, entry.value, existing_tenant, update, to, from)
+    
+    try {
+      final List<Map> params = tenantData?.containsKey(TENANT_MODULE_PARAMETERS) ? tenantData.get(TENANT_MODULE_PARAMETERS) : null
+      if (params) {
+        final String event_prefix  = 'okapi:tenant_' 
+        
+        final String from = tenantData[TENANT_MODULE_FROM]
+        final String to = tenantData[TENANT_MODULE_TO]
+        final boolean update = from as boolean
+        final boolean existing_tenant = tenantData.existing_tenant
+        
+        params.each { Map<String,String> entry ->
+          final String key = entry?.key?.trim()
+          if (key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
+            final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"
+            
+            log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"
+            notify (event_name, tenantId, entry.value, existing_tenant, update, to, from)
+          }
         }
       }
+    } catch (Exception e) {
+      log.warn 'Error when extracting tenant parmeters.', e
     }
   }
     

@@ -27,7 +27,6 @@ class OkapiTenantAdminService implements EventPublisher {
   def dataSource
   GrailsApplication grailsApplication
 
-  private static final Set<String> parameter_excludes = ['controller', 'action', 'method']
   private handleTenantParameters ( final String tenantId, final Map tenantData ) {
     final List<Map> params = tenantData?.get(TENANT_MODULE_PARAMETERS)
     if (params) {
@@ -40,7 +39,7 @@ class OkapiTenantAdminService implements EventPublisher {
       
       params.each { Map<String,String> entry ->
         final String key = entry?.key?.trim()
-        if (!parameter_excludes.contains(key) && key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
+        if (key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
           final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"
           
           log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"

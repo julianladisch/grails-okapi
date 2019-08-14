@@ -16,9 +16,8 @@ public class OkapiInterceptor {
   public OkapiInterceptor() {
 
     // Match all EXCEPT the tenant controller
-    matchAll().excludes {
-      match(controller:'tenant')
-    }
+    matchAll()
+      .excludes(controller:'tenant')
   }
 
   boolean before() {
@@ -28,7 +27,7 @@ public class OkapiInterceptor {
     // HttpServletRequest httpServletRequest = getRequest()
     String tenantId = request.getHeader(OkapiHeaders.TENANT)?.toLowerCase()?.trim()
     if ( tenantId ) {
-      okapiTenantAdminService.performSchemaCheck();
+      okapiTenantAdminService.performSchemaCheck(tenantId);
     }
  
     true

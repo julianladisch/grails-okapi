@@ -14,15 +14,19 @@ public class OkapiInterceptor {
   int order = HIGHEST_PRECEDENCE + 100
 
   public OkapiInterceptor() {
-    matchAll();
+
+    // Match all EXCEPT the tenant controller
+    matchAll().excludes {
+      match(controller:'tenant')
+    }
   }
 
   boolean before() {
     // See if this request has an X-OKAPI-TENANT header
     // If so, see if we have a hibernateDatastore for that tenant yet
 
-    HttpServletRequest httpServletRequest = getRequest()
-    String tenantId = httpServletRequest.getHeader(OkapiHeaders.TENANT.toLowerCase())?.toLowerCase()
+    // HttpServletRequest httpServletRequest = getRequest()
+    String tenantId = request.getHeader(OkapiHeaders.TENANT)?.toLowerCase()?.trim()
     if ( tenantId ) {
       okapiTenantAdminService.performSchemaCheck();
     }

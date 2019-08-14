@@ -208,14 +208,18 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
 
-  public void performSchemaCheck(String schema) {
-    log.debug("Checking to see if ${schema} is alreadt present in getAllTenantIds()  : ${getAllTenantIds().contains(schema)}");
-    if ( schema ) {
-      if ( getAllTenantIds().contains(schema) ) {
+  public void performSchemaCheck(String tenantId) {
+    log.debug("Checking to see if ${tenantId} is alreadt present in getAllTenantIds()  : ${getAllTenantIds().contains(tenantId)}");
+    if ( tenantId ) {
+      if ( getAllTenantIds().contains(tenantId) ) {
         // Nothing to do - proceed
       }
       else {
         // request is for a tenant not yet configured -- process
+        log.debug("${tenantId} is not registered in the list of all Tenant IDs, configure and add now");
+        String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
+        updateAccountSchema(new_schema_name, tenantId);
+        allTenantIds << tenantId
       }
     }
   }

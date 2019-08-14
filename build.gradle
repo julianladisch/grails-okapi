@@ -76,3 +76,15 @@ bootRun {
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
 
+publishing {
+  repositories {
+    maven {
+      url "http://nexus.k-int.com/content/repositories/releases/"
+      credentials {
+        username project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
+        password project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
+      }
+    }
+  }
+}
+

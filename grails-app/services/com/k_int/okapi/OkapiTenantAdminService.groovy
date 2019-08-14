@@ -210,5 +210,13 @@ class OkapiTenantAdminService implements EventPublisher {
 
   public void performSchemaCheck(String schema) {
     log.debug("Checking to see if ${schema} is alreadt present in getAllTenantIds()  : ${getAllTenantIds().contains(schema)}");
+    if ( schema ) {
+      if ( getAllTenantIds().contains(schema) ) {
+        // Nothing to do - proceed
+      }
+      else {
+        // request is for a tenant not yet configured -- process
+      }
+    }
   }
 }

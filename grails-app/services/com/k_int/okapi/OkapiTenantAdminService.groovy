@@ -71,8 +71,6 @@ class OkapiTenantAdminService implements EventPublisher {
         updateAccountSchema(new_schema_name, tenantId)
         allTenantIds << tenantId
 
-        // This is called in updateAccountSchema too - don't think we should call it twice
-        // hibernateDatastore.addTenantForSchema(new_schema_name)
         notify("okapi:tenant_schema_created", new_schema_name)
         
         // Having trouble catching the event in the global listener. Call directly for now.
@@ -210,4 +208,7 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
 
+  public void performSchemaCheck(String schema) {
+    log.debug("Checking to see if ${schema} is alreadt present in getAllTenantIds()  : ${getAllTenantIds().contains(schema)}");
+  }
 }

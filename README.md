@@ -18,6 +18,10 @@ dependencies {
 ```
 You must also install and configure the dependants listed above.
 
+grails publish-plugin 
+
+To publish to nexus
+
 ## Register the provider name with spring security
 ``` YML
 ...

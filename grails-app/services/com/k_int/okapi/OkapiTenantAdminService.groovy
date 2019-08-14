@@ -218,7 +218,10 @@ class OkapiTenantAdminService implements EventPublisher {
         // request is for a tenant not yet configured -- process
         log.debug("${tenantId} is not registered in the list of all Tenant IDs, configure and add now");
         String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
-        updateAccountSchema(new_schema_name, tenantId);
+        // Just register the new tenant/schema name
+        hibernateDatastore.addTenantForSchema(new_schema_name)
+        // Alternatively, we could register the schema name AND update the schema
+        // updateAccountSchema(new_schema_name, tenantId);
         allTenantIds << tenantId
       }
     }

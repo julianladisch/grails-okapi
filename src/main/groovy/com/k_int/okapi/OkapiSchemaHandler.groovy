@@ -98,11 +98,10 @@ class OkapiSchemaHandler implements SchemaHandler {
     Collection<String> resolveSchemaNames(DataSource dataSource) {
         // If this is called by HibernateDatastore.java then the next step will be for the
         // addTenantForSchemaInternal method to be called for this db
-        // log.debug("OkapiSchemaHandler::resolveSchemaNames called")
+        log.debug("OkapiSchemaHandler::resolveSchemaNames called")
         Collection<String> schemaNames = []
         Connection connection = dataSource.getConnection()
         try {
-
           // Iterate through all schemas, ignore any that don't end OkapiTenantResolver.getSchemaSuffix(), add those that do to the result.
           // This may be the place to run migrations, or it may be better to do that in bootstrap.
           ResultSet schemas = connection.getMetaData().getSchemas()

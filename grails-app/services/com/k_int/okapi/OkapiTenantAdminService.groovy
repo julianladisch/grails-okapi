@@ -123,7 +123,7 @@ class OkapiTenantAdminService implements EventPublisher {
   private static Set<Serializable> allTenantIdentifiers = null
   private static Set<Serializable> allTenantSchemaIdentifiers = null
   
-  Set<Serializable> getAllTenantIds () {
+  Set<Serializable> synchronized getAllTenantIds () {
     log.trace ("TenantAdminService::getAllTenantIds")
     if (!allTenantIdentifiers) {
       
@@ -148,7 +148,7 @@ class OkapiTenantAdminService implements EventPublisher {
       // This is the first pass through - so let anyone interested know what the current list of tenants is.
       // The methods for enableTenant (Newly enable the module for a tenant) and performSchemaCheck (Detecting 
       // if a tenant has been added by a clustered instance of this module) can also fire off this event.
-      notify("okapi:tenant_list_updated", allTenantIds)
+      notify("okapi:tenant_list_updated", allTenantIdentifiers)
     }
     
     allTenantIdentifiers    

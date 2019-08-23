@@ -56,7 +56,7 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
     
-  public synchronized void enableTenant( final String tenantId, final Map tenantData = null ) {
+  public void enableTenant( final String tenantId, final Map tenantData = null ) {
       tenantData.existing_tenant = false
       String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
       try {

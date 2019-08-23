@@ -113,6 +113,7 @@ class SomeController extends OkapiTenantAwareController<SomeMultiTenantDomain> {
 
     grails package-plugin - To build locally
     grails install - to install plugin in local repo
+    grails publish-plugin - To upload the plugin to the public repo
 
 # Troubleshooting
 

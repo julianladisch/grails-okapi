@@ -72,6 +72,7 @@ class OkapiTenantAdminService implements EventPublisher {
         allTenantIds << tenantId
 
         notify("okapi:tenant_schema_created", new_schema_name)
+        notify("okapi:tenant_list_updated", allTenantIds)
         
         // Having trouble catching the event in the global listener. Call directly for now.
         RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
@@ -143,6 +144,11 @@ class OkapiTenantAdminService implements EventPublisher {
           log.debug("${schema_name} does not end with schema suffix ${OkapiTenantResolver.getSchemaSuffix()}, skipping");
         }
       }
+
+      // This is the first pass through - so let anyone interested know what the current list of tenants is.
+      // The methods for enableTenant (Newly enable the module for a tenant) and performSchemaCheck (Detecting 
+      // if a tenant has been added by a clustered instance of this module) can also fire off this event.
+      notify("okapi:tenant_list_updated", allTenantIds)
     }
     
     allTenantIdentifiers    
@@ -152,7 +158,6 @@ class OkapiTenantAdminService implements EventPublisher {
     log.trace ("TenantAdminService::getAllTenantSchemaIds")
     
     if (!allTenantSchemaIdentifiers) {
-      
       // Initializes both Sets.
       getAllTenantIds()
     }
@@ -208,6 +213,10 @@ class OkapiTenantAdminService implements EventPublisher {
     }
   }
 
+  /**
+   * This method checks to see if a tenant mentioned in the request is already configured in the datastore.
+   * If not, register it and continue.
+   */
   public void performSchemaCheck(String tenantId) {
     if ( tenantId ) {
       log.debug("Checking to see if ${tenantId} is already present in getAllTenantIds()  : ${getAllTenantIds().contains(tenantId)}");
@@ -223,6 +232,10 @@ class OkapiTenantAdminService implements EventPublisher {
         // Alternatively, we could register the schema name AND update the schema
         // updateAccountSchema(new_schema_name, tenantId);
         allTenantIds << tenantId
+
+        // Let anyone interested know that we think we gave located a new tenant we were not aware of at startup
+        notify("okapi:new_tenant_detected", tenantId)
+        notify("okapi:tenant_list_updated", allTenantIds)
       }
     }
   }

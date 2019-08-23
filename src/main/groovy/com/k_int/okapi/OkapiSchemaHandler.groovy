@@ -38,35 +38,45 @@ class OkapiSchemaHandler implements SchemaHandler {
 
     @Override
     void useSchema(Connection connection, String name) {
-        // log.debug("useSchema");
+
         String useStatement = String.format(useSchemaStatement, name)
-        // log.debug("Executing SQL Set Schema Statement: ${useStatement}")
         
         try {
-          // Gather all the schemas
-          ResultSet schemas = connection.getMetaData().getSchemas()
-          Collection<String> schemaNames = []
-          while(schemas.next()) {
-            schemaNames.add(schemas.getString("TABLE_SCHEM"))
-          }
-
-          if ( schemaNames.contains(name) ) {
-            // The assumption seems to be that this will throw an exception if the schema does not exist, but pg silently continues...
-            connection
-                  .createStatement()
-                  .execute(useStatement)
-          }
-          else {
-            throw new RuntimeException("Attempt to use schema ${name} that does not exist according to JDBC metadata");
-          }
+          // Calling if ( checkSchemaIsValid(connection,name) ) here seems unneccessary and a substantial per-request overhead.
+          // Removing for now
+          // The assumption seems to be that this will throw an exception if the schema does not exist, but pg silently continues...
+          connection
+            .createStatement()
+            .execute(useStatement)
         }
         catch ( Exception e ) {
           log.error("problem trying to use schema - \"${useStatement}\"",e)
           // Rethrow
           throw e
         }
+    }
 
-        // log.debug("useSchema completed OK");
+    boolean checkSchemaIsValid(Connection connection, String name) {
+      boolean result = false;
+      try {
+        // Gather all the schemas
+        ResultSet schemas = connection.getMetaData().getSchemas()
+        Collection<String> schemaNames = []
+        while(schemas.next()) {
+          schemaNames.add(schemas.getString("TABLE_SCHEM"))
+        }
+
+        if ( schemaNames.contains(name) ) {
+          result = true;
+        }
+      }
+      catch ( Exception e ) {
+        log.error("problem trying to enumerate schemas");
+        // Rethrow
+        throw e
+      }
+
+      return result;
     }
 
     @Override

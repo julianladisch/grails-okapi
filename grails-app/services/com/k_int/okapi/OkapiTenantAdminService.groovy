@@ -123,7 +123,7 @@ class OkapiTenantAdminService implements EventPublisher {
   private static Set<Serializable> allTenantIdentifiers = null
   private static Set<Serializable> allTenantSchemaIdentifiers = null
   
-  Set<Serializable> synchronized getAllTenantIds () {
+  public Set<Serializable> getAllTenantIds () {
     log.trace ("TenantAdminService::getAllTenantIds")
     if (!allTenantIdentifiers) {
       

@@ -47,8 +47,6 @@ class OkapiSchemaHandler implements SchemaHandler {
         // Removing for now
         // The assumption seems to be that this will throw an exception if the schema does not exist, but pg silently continues...
 
-        checkSchemaIsValid(connection, name);
-
         connection
           .createStatement()
           .execute(useStatement)

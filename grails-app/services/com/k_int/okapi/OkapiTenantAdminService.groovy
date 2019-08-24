@@ -25,6 +25,10 @@ class OkapiTenantAdminService implements EventPublisher {
   private static final String TENANT_MODULE_TO = 'module_to'
   private static final String TENANT_MODULE_PARAMETERS = 'parameters'
 
+  private static Set<Serializable> allTenantIdentifiers = null
+  private static Set<Serializable> allTenantSchemaIdentifiers = null
+  
+
   HibernateDatastore hibernateDatastore
   def dataSource
   GrailsApplication grailsApplication
@@ -69,10 +73,12 @@ class OkapiTenantAdminService implements EventPublisher {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
         createAccountSchema(new_schema_name)
         updateAccountSchema(new_schema_name, tenantId)
-        allTenantIds << tenantId
+
+        // Get hold of the cached list of tenant IDs and then add this new tenant to the list
+        getAllTenantIds() << tenantId
 
         notify("okapi:tenant_schema_created", new_schema_name)
-        notify("okapi:tenant_list_updated", allTenantIds)
+        notify("okapi:tenant_list_updated", getAllTenantIds())
         
         // Having trouble catching the event in the global listener. Call directly for now.
         RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
@@ -107,7 +113,7 @@ class OkapiTenantAdminService implements EventPublisher {
           sql.execute("drop schema ${schema_name} cascade" as String)
       }
       
-      allTenantIds.remove(tenantId)
+      getAllTenantIds().remove(tenantId)
       notify("okapi:tenant_purged", schema_name)
     } finally {
         sql?.close()
@@ -120,15 +126,12 @@ class OkapiTenantAdminService implements EventPublisher {
     notify("okapi:tenant_disabled", tenantId)
   }
   
-  private static Set<Serializable> allTenantIdentifiers = null
-  private static Set<Serializable> allTenantSchemaIdentifiers = null
-  
   public Set<Serializable> getAllTenantIds () {
-    log.trace ("TenantAdminService::getAllTenantIds")
-    if (!allTenantIdentifiers) {
+    log.trace ("TenantAdminService::getAllTenantIds (${})")
+    if (allTenantIdentifiers == null) {
       
       // Initializing all tenants.
-      log.debug ("Initializing tenant list from db schemas")
+      log.debug ("allTenantIdentifiers is NULL - so establish the list and pull default values from the database");
       allTenantIdentifiers = []
       allTenantSchemaIdentifiers = []
       
@@ -222,6 +225,7 @@ class OkapiTenantAdminService implements EventPublisher {
       log.debug("Checking to see if ${tenantId} is already present in getAllTenantIds()  : ${getAllTenantIds().contains(tenantId)}");
       if ( getAllTenantIds().contains(tenantId) ) {
         // Nothing to do - proceed
+        log.debug("performSchemaCheck(${tenantId}) -- true - no action needed");
       }
       else {
         // request is for a tenant not yet configured -- process
@@ -231,11 +235,12 @@ class OkapiTenantAdminService implements EventPublisher {
         hibernateDatastore.addTenantForSchema(new_schema_name)
         // Alternatively, we could register the schema name AND update the schema
         // updateAccountSchema(new_schema_name, tenantId);
-        allTenantIds << tenantId
+        getAllTenantIds() << tenantId
 
         // Let anyone interested know that we think we gave located a new tenant we were not aware of at startup
+        log.debug("Added new schema for ${tenantId} - notify watchers");
         notify("okapi:new_tenant_detected", tenantId)
-        notify("okapi:tenant_list_updated", allTenantIds)
+        notify("okapi:tenant_list_updated", getAllTenantIds())
       }
     }
   }

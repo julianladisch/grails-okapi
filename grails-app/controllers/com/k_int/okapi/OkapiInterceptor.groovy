@@ -27,6 +27,7 @@ public class OkapiInterceptor {
     // HttpServletRequest httpServletRequest = getRequest()
     String tenantId = request.getHeader(OkapiHeaders.TENANT)?.toLowerCase()?.trim()
     if ( tenantId ) {
+      log.debug("OkapiInterceptor::performSchemaCheck(${tenantId})");
       okapiTenantAdminService.performSchemaCheck(tenantId);
     }
  

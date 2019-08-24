@@ -39,21 +39,25 @@ class OkapiSchemaHandler implements SchemaHandler {
     @Override
     void useSchema(Connection connection, String name) {
 
-        String useStatement = String.format(useSchemaStatement, name)
+      log.debug("useSchema(conn, ${name})");
+      String useStatement = String.format(useSchemaStatement, name)
         
-        try {
-          // Calling if ( checkSchemaIsValid(connection,name) ) here seems unneccessary and a substantial per-request overhead.
-          // Removing for now
-          // The assumption seems to be that this will throw an exception if the schema does not exist, but pg silently continues...
-          connection
-            .createStatement()
-            .execute(useStatement)
-        }
-        catch ( Exception e ) {
-          log.error("problem trying to use schema - \"${useStatement}\"",e)
-          // Rethrow
-          throw e
-        }
+      try {
+        // Calling if ( checkSchemaIsValid(connection,name) ) here seems unneccessary and a substantial per-request overhead.
+        // Removing for now
+        // The assumption seems to be that this will throw an exception if the schema does not exist, but pg silently continues...
+
+        checkSchemaIsValid(connection, name);
+
+        connection
+          .createStatement()
+          .execute(useStatement)
+      }
+      catch ( Exception e ) {
+        log.error("problem trying to use schema - \"${useStatement}\"",e)
+        // Rethrow
+        throw e
+      }
     }
 
     boolean checkSchemaIsValid(Connection connection, String name) {

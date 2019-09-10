@@ -236,6 +236,8 @@ class OkapiTenantAdminService implements EventPublisher {
         // Alternatively, we could register the schema name AND update the schema
         // updateAccountSchema(new_schema_name, tenantId);
         getAllTenantIds() << tenantId
+        
+        getAllTenantSchemaIds() << new_schema_name
 
         // Let anyone interested know that we think we gave located a new tenant we were not aware of at startup
         log.debug("Added new schema for ${tenantId} - notify watchers");

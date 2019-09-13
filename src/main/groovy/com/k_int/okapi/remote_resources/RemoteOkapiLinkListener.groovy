@@ -99,7 +99,7 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   public static final String FETCHED_PROPERTY_SUFFIX = '_object'
   protected void onPersistenceEvent(final AbstractPersistenceEvent event) {
     AbstractHibernateDatastore es = (AbstractHibernateDatastore) event.source
-    Map<String, String> propertyNames = [:]
+    Map<String, Object> propertyNames = [:]
     
     def obj = event.entityObject
     log.trace "Checking cache..."

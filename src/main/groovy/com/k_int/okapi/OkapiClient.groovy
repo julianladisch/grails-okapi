@@ -5,7 +5,6 @@ import static groovyx.net.http.HttpBuilder.configure
 
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Future
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -17,10 +16,10 @@ import org.grails.datastore.mapping.multitenancy.exceptions.TenantNotFoundExcept
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
 import org.grails.web.servlet.mvc.GrailsWebRequest
-import org.grails.web.util.WebUtils
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.context.request.RequestContextHolder
+
 import grails.core.GrailsApplication
 import grails.gorm.multitenancy.Tenants
 import grails.util.Metadata
@@ -135,12 +134,42 @@ class OkapiClient {
     obj.metaClass[methodName] = metaMethod.curry(template, converter)
   }
   
-  public void decorateWithRemoteObjects (final def obj, final Map<String,String> propertyNamesAndLocations, final String suffix) {
+  private String evaluateLocation (final def obj, final String propName, final def location) {
+    
+    String evaluated = ''
+    switch (location) {
+      case {it instanceof Closure} :
+        
+        Closure locationTmp = (location as Closure).rehydrate(obj, obj, obj)
+        def result
+        switch (locationTmp.maximumNumberOfParameters) {
+          case 0:
+            result = locationTmp.call()
+            break
+          case 1:
+            result = locationTmp.call(obj)
+            break
+          default:
+            throw new RuntimeException("Uri closure for ${obj} must accept 1 or 0 parameters")
+        }
+          
+        // Assume the template replaces with the property, and just evaluate and clean
+        evaluated = "${result}".replaceAll(/^\s*\/?(.*?)\s*$/, '/$1')
+        break
+      default:
+        // evaluate
+        evaluated = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
+    }
+    
+    evaluated
+  }
+  
+  public void decorateWithRemoteObjects (final def obj, final Map<String,Object> propertyNamesAndLocations, final String suffix) {
     log.debug "decorator called for ${obj}"
     propertyNamesAndLocations.each { propName, location ->
-      final String uri = "${location}".replaceAll(/^\s*\/?(.*?)\/?\s*$/, '/$1') + '/' + obj[propName]
+      final String uri = evaluateLocation(obj, propName, location)
       
-      log.debug "checking request cache..."
+      log.debug "checking request cache for ${uri}..."
       def backGroundFetch = retrieveCacheValue( uri )
       
       if (!backGroundFetch) {

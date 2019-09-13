@@ -4,7 +4,7 @@ import grails.gorm.MultiTenant
 
 public abstract class RemoteOkapiLink implements MultiTenant<RemoteOkapiLink> {
   
-  abstract String remoteUri()
+  abstract def remoteUri()
   
   String id // This is the internal ID of the link and not the ID of the remote license.
   

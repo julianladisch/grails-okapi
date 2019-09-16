@@ -125,11 +125,11 @@ public class DataloadingService implements EventPublisher, DataBinder {
   
   @Subscriber('okapi:tenant_load_reference')
   public void onTenantLoadReference(final String tenantId, final String value, final boolean existing_tenant, final boolean upgrading, final String toVersion, final String fromVersion) {
-    final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
-    
-    log.debug("RefdataService::onTenantLoadReference(${tenantId}, ${value}, ${existing_tenant}, ${upgrading}, ${toVersion}, ${fromVersion})")
-    if (!existing_tenant) GrailsDomainRefdataHelpers.setDefaultsForTenant(schemaName)
-    
+//    final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
+//    
+//    log.debug("RefdataService::onTenantLoadReference(${tenantId}, ${value}, ${existing_tenant}, ${upgrading}, ${toVersion}, ${fromVersion})")
+//    if (!existing_tenant) GrailsDomainRefdataHelpers.setDefaultsForTenant(schemaName)
+    log.debug "okapi:tenant_load_reference currently a noop. Just raise our post action event okapi:dataload:reference"
     notify('okapi:dataload:reference', tenantId, value, existing_tenant, upgrading, toVersion, fromVersion)
   }
   

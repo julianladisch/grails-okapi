@@ -9,7 +9,7 @@ import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
 
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
-
+import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
 import grails.converters.*
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
@@ -27,7 +27,6 @@ class OkapiTenantAdminService implements EventPublisher {
 
   private static Set<Serializable> allTenantIdentifiers = null
   private static Set<Serializable> allTenantSchemaIdentifiers = null
-  
 
   HibernateDatastore hibernateDatastore
   def dataSource
@@ -92,6 +91,8 @@ class OkapiTenantAdminService implements EventPublisher {
         RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
       }
       
+      // Make this serial and the tenant parameter is now currently a noop.
+      GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
       handleTenantParameters( tenantId, tenantData )
       notify("okapi:tenant_enabled", tenantId)
   }

@@ -11,10 +11,17 @@ buildscript {
 
 }
 
-version "3.6.10"
+/**
+ * II: Have updated maven deployer now uses gradle uploadArchives to upload build artefacts to
+ * nexus. Suggest we leave the version as -SNAPSHOT by default and only set it to a final release
+ * on release, then bump the version to the next -SNAPSHOT after release to prevent any accidental
+ * changes to released modules.
+ */
+version "3.6.11-SNAPSHOT"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
+apply plugin: 'maven'
 apply plugin:"org.grails.grails-plugin"
 apply plugin:"org.grails.grails-plugin-publish"
 apply plugin:"org.grails.plugins.views-json"
@@ -76,15 +83,20 @@ bootRun {
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
 
-publishing {
-  repositories {
-    maven {
-      url "http://nexus.k-int.com/content/repositories/releases/"
-      credentials {
-        username project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
-        password project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
-      }
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "http://nexus.k-int.com/content/repositories/releases/") {
+                def usr = project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
+                def pass = project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
+                authentication(userName: usr, password: pass)
+            }
+            snapshotRepository(url: "http://nexus.k-int.com/content/repositories/snapshots/") {
+                def usr = project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
+                def pass = project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
+                authentication(userName: usr, password: pass)
+            }
+        }
     }
-  }
 }
 

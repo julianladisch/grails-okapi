@@ -18,7 +18,8 @@ dependencies {
 ```
 You must also install and configure the dependants listed above.
 
-grails publish-plugin 
+grails package-plugin
+gradle uploadArchives
 
 To publish to nexus
 

@@ -34,6 +34,8 @@ class OkapiTenantAdminService implements EventPublisher {
   GrailsApplication grailsApplication
 
   private handleTenantParameters ( final String tenantId, final Map tenantData ) {
+
+    log.trace("handleTenantParameters(${tenantId},${tenantData})");
     
     try {
       final List<Map> params = tenantData?.containsKey(TENANT_MODULE_PARAMETERS) ? tenantData.get(TENANT_MODULE_PARAMETERS) : null
@@ -53,6 +55,9 @@ class OkapiTenantAdminService implements EventPublisher {
             log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"
             notify (event_name, tenantId, entry.value, existing_tenant, update, to, from)
           }
+          else {
+            log.trace("Skip: ${key}");
+          }
         }
       }
     } catch (Exception e) {
@@ -61,6 +66,9 @@ class OkapiTenantAdminService implements EventPublisher {
   }
     
   public void enableTenant( final String tenantId, final Map tenantData = null ) {
+
+      log.trace("enableTenant(${tenantId},${tenantData})");
+
       tenantData.existing_tenant = false
       String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
       try {
@@ -126,7 +134,7 @@ class OkapiTenantAdminService implements EventPublisher {
     notify("okapi:tenant_disabled", tenantId)
   }
   
-  public Set<Serializable> getAllTenantIds () {
+  public synchronized Set<Serializable> getAllTenantIds () {
     log.trace ("TenantAdminService::getAllTenantIds (${})")
     if (allTenantIdentifiers == null) {
       

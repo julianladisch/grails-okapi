@@ -17,7 +17,7 @@ buildscript {
  * on release, then bump the version to the next -SNAPSHOT after release to prevent any accidental
  * changes to released modules.
  */
-version "3.6.11"
+version "3.6.12"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"

@@ -15,7 +15,8 @@ import org.springframework.web.context.request.RequestContextHolder
 
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
-
+import grails.core.GrailsApplication
+import grails.util.Holders
 import grails.web.api.ServletAttributes
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
@@ -146,7 +147,26 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     }
   }
   
-  private static final Set<String> ALLOWED_ACTIONS = ['show',  'update', 'save', 'create'] as Set<String> 
+  private final Map<String, Set<String>> allowedControllerActions = [:]
+  private final Set<String> defaultAllowedActions = ['show', 'update', 'save', 'create'] as Set
+  
+//  @Memoized
+  public final Set<String> getAllowedContollerActions(final String controller) {
+
+    if ((allowedControllerActions?.size() ?: 0) == 0) {
+      allowedControllerActions['_'] = defaultAllowedActions
+      
+      GrailsApplication ga = (GrailsApplication)applicationContext.getBean('grailsApplication')
+      
+      def nativeVal = ga.config.getProperty ('okapi.linkListener.allowedControllerActions', Map, [:])
+      allowedControllerActions.putAll( nativeVal )
+    }
+    
+    final Set<String> actionList = allowedControllerActions[controller] ?: allowedControllerActions['_']
+    log.trace "allowed action for controller = ${actionList}"
+    actionList
+  }
+  
   /**
    * {@inheritDoc}
    * @see org.springframework.context.ApplicationListener#onApplicationEvent(
@@ -155,13 +175,12 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   @Override
   public final void onApplicationEvent(ApplicationEvent e) {
     
-    
 //    log.debug "Caught Event: ${e} for source ${e.source}"
     if(e instanceof AbstractPersistenceEvent) {
       RequestAttributes rAttr = RequestContextHolder.getRequestAttributes()
       
-      if (rAttr == null || !ALLOWED_ACTIONS.contains(actionName)) {
-        log.trace "Skipping because ${!rAttr ? 'no request' : 'action ' + actionName + ' is not in list'}"
+      if (rAttr == null || !this.getAllowedContollerActions(controllerName).contains(actionName)) {
+        log.trace "Skipping because ${!rAttr ? 'no request' : 'action ' + actionName + ' is not in list for controller ${controllerName}'}"
         return
       } 
       

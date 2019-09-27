@@ -17,6 +17,8 @@ import groovy.json.JsonSlurper
 
 class OkapiAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
   
+  public static final String AUTHORITY_PREFIX = 'okapi.'
+  
   private final JsonSlurper json = new JsonSlurper()
   public OkapiAuthenticationFilter() {
     super("/**")
@@ -69,7 +71,7 @@ class OkapiAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
   
     OkapiAuthenticationToken authRequest = new OkapiAuthenticationToken(
       headers.userId,
-      grants.collect { new SimpleGrantedAuthority("folio.${it}") }
+      grants.collect { new SimpleGrantedAuthority("${AUTHORITY_PREFIX}${it}") }
     )
 
     getAuthenticationManager().authenticate(authRequest)

@@ -73,7 +73,10 @@ class OkapiTenantAdminService implements EventPublisher {
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)
-        log.debug("Module already registered for tenant")
+
+        log.debug("Module already registered for tenant - check schema up to date")
+        updateAccountSchema(new_schema_name, tenantId)
+
         tenantData.existing_tenant = true
       }
       catch ( ConfigurationException ce ) {
@@ -219,7 +222,6 @@ class OkapiTenantAdminService implements EventPublisher {
     try {
       log.debug("adding tenant for ${schema_name}")
       hibernateDatastore.addTenantForSchema(schema_name)
-      
       notify("okapi:schema_update", tenantId, schema_name)
     } catch (Exception e) {
       log.error("Exception adding tenant schema for ${schema_name}", e)

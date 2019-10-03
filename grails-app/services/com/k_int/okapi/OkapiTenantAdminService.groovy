@@ -81,17 +81,22 @@ class OkapiTenantAdminService implements EventPublisher {
       }
       catch ( ConfigurationException ce ) {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
-        createAccountSchema(new_schema_name)
-        updateAccountSchema(new_schema_name, tenantId)
+        try {
+          createAccountSchema(new_schema_name)
+          updateAccountSchema(new_schema_name, tenantId)
 
-        // Get hold of the cached list of tenant IDs and then add this new tenant to the list
-        getAllTenantIds() << tenantId
+          // Get hold of the cached list of tenant IDs and then add this new tenant to the list
+          getAllTenantIds() << tenantId
 
-        notify("okapi:tenant_schema_created", new_schema_name)
-        notify("okapi:tenant_list_updated", getAllTenantIds())
+          notify("okapi:tenant_schema_created", new_schema_name)
+          notify("okapi:tenant_list_updated", getAllTenantIds())
         
-        // Having trouble catching the event in the global listener. Call directly for now.
-        RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
+          // Having trouble catching the event in the global listener. Call directly for now.
+          RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
+        }
+        catch ( Exception e ) {
+          log.error("Problem registering module for tenant/schema",e);
+        }
       }
       
       // Make this serial and the tenant parameter is now currently a noop.

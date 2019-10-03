@@ -103,6 +103,7 @@ class OkapiTenantAdminService implements EventPublisher {
       GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
       handleTenantParameters( tenantId, tenantData )
       notify("okapi:tenant_enabled", tenantId)
+      log.debug("enableTenant exit cleanly");
   }
 
   synchronized void createAccountSchema(String tenantId) {

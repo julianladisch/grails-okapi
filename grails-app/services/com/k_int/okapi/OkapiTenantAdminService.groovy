@@ -73,28 +73,37 @@ class OkapiTenantAdminService implements EventPublisher {
       try {
         log.debug("See if we already have a datastore for ${new_schema_name}")
         hibernateDatastore.getDatastoreForConnection(new_schema_name)
-        log.debug("Module already registered for tenant")
+
+        log.debug("Module already registered for tenant - check schema up to date")
+        updateAccountSchema(new_schema_name, tenantId)
+
         tenantData.existing_tenant = true
       }
       catch ( ConfigurationException ce ) {
         log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
-        createAccountSchema(new_schema_name)
-        updateAccountSchema(new_schema_name, tenantId)
+        try {
+          createAccountSchema(new_schema_name)
+          updateAccountSchema(new_schema_name, tenantId)
 
-        // Get hold of the cached list of tenant IDs and then add this new tenant to the list
-        getAllTenantIds() << tenantId
+          // Get hold of the cached list of tenant IDs and then add this new tenant to the list
+          getAllTenantIds() << tenantId
 
-        notify("okapi:tenant_schema_created", new_schema_name)
-        notify("okapi:tenant_list_updated", getAllTenantIds())
+          notify("okapi:tenant_schema_created", new_schema_name)
+          notify("okapi:tenant_list_updated", getAllTenantIds())
         
-        // Having trouble catching the event in the global listener. Call directly for now.
-        RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
+          // Having trouble catching the event in the global listener. Call directly for now.
+          RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
+        }
+        catch ( Exception e ) {
+          log.error("Problem registering module for tenant/schema",e);
+        }
       }
       
       // Make this serial and the tenant parameter is now currently a noop.
       GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
       handleTenantParameters( tenantId, tenantData )
       notify("okapi:tenant_enabled", tenantId)
+      log.debug("enableTenant exit cleanly");
   }
 
   synchronized void createAccountSchema(String tenantId) {
@@ -219,7 +228,6 @@ class OkapiTenantAdminService implements EventPublisher {
     try {
       log.debug("adding tenant for ${schema_name}")
       hibernateDatastore.addTenantForSchema(schema_name)
-      
       notify("okapi:schema_update", tenantId, schema_name)
     } catch (Exception e) {
       log.error("Exception adding tenant schema for ${schema_name}", e)

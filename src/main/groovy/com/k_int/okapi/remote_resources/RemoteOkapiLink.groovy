@@ -1,7 +1,9 @@
 package com.k_int.okapi.remote_resources;
 
 import grails.gorm.MultiTenant
+import grails.gorm.dirty.checking.DirtyCheck
 
+@DirtyCheck
 public abstract class RemoteOkapiLink implements MultiTenant<RemoteOkapiLink> {
   
   abstract def remoteUri()

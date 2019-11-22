@@ -39,18 +39,13 @@ class TenantController {
         log.info("Recveived data ${post_body}")
         okapiTenantAdminService.enableTenant(tenant_id, (post_body as Map))
         sendResponse(SC_CREATED)
-        break
+        return
       case 'DELETE':
-        try {
           log.debug("PURGE Tenant ${tenant_id}")
           // This is well risque, but it actually suits our functional test framework ;)
           okapiTenantAdminService.purgeTenant(tenant_id)
           sendResponse(SC_NO_CONTENT)
-        }
-        catch ( Exception e ) {
-          log.warn("There was an exception thrown in okapiTenantAdminService.dropTenant. Not worrying unduly!")
-        }
-        break
+          return
       default:
         log.warn("Unhandled verb ${request.method} for module tenant api")
         break

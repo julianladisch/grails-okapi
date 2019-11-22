@@ -10,17 +10,16 @@ import org.grails.plugins.databasemigration.liquibase.GrailsLiquibase
 
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
-import grails.converters.*
+
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
-import grails.rest.*
 import grails.util.GrailsNameUtils
 import groovy.sql.Sql
 import groovy.util.logging.Slf4j
 
 @Slf4j
 class OkapiTenantAdminService implements EventPublisher {
-  
+
   private static final String TENANT_MODULE_FROM = 'module_from'
   private static final String TENANT_MODULE_TO = 'module_to'
   private static final String TENANT_MODULE_PARAMETERS = 'parameters'
@@ -35,22 +34,22 @@ class OkapiTenantAdminService implements EventPublisher {
   private handleTenantParameters ( final String tenantId, final Map tenantData ) {
 
     log.trace("handleTenantParameters(${tenantId},${tenantData})");
-    
+
     try {
       final List<Map> params = tenantData?.containsKey(TENANT_MODULE_PARAMETERS) ? tenantData.get(TENANT_MODULE_PARAMETERS) : null
       if (params) {
-        final String event_prefix  = 'okapi:tenant_' 
-        
+        final String event_prefix  = 'okapi:tenant_'
+
         final String from = tenantData[TENANT_MODULE_FROM]
         final String to = tenantData[TENANT_MODULE_TO]
         final boolean update = from as boolean
         final boolean existing_tenant = tenantData.existing_tenant
-        
+
         params.each { Map<String,String> entry ->
           final String key = entry?.key?.trim()
           if (key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
             final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"
-            
+
             log.trace "Raising event ${event_name} for tenant ${tenantId} with data ${entry.value}, ${existing_tenant}, ${update}, ${to}, ${from}"
             notify (event_name, tenantId, entry.value, existing_tenant, update, to, from)
           }
@@ -63,60 +62,60 @@ class OkapiTenantAdminService implements EventPublisher {
       log.warn 'Error when extracting tenant parmeters.', e
     }
   }
-    
+
   public void enableTenant( final String tenantId, final Map tenantData = null ) {
 
-      log.trace("enableTenant(${tenantId},${tenantData})");
+    log.trace("enableTenant(${tenantId},${tenantData})");
 
-      tenantData.existing_tenant = false
-      String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
+    tenantData.existing_tenant = false
+    String new_schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
+    try {
+      log.debug("See if we already have a datastore for ${new_schema_name}")
+      hibernateDatastore.getDatastoreForConnection(new_schema_name)
+
+      log.debug("Module already registered for tenant - check schema up to date")
+      updateAccountSchema(new_schema_name, tenantId)
+
+      tenantData.existing_tenant = true
+    }
+    catch ( ConfigurationException ce ) {
+      log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
       try {
-        log.debug("See if we already have a datastore for ${new_schema_name}")
-        hibernateDatastore.getDatastoreForConnection(new_schema_name)
-
-        log.debug("Module already registered for tenant - check schema up to date")
+        createAccountSchema(new_schema_name)
         updateAccountSchema(new_schema_name, tenantId)
 
-        tenantData.existing_tenant = true
-      }
-      catch ( ConfigurationException ce ) {
-        log.debug("register module for tenant/schema (${tenantId}/${new_schema_name})")
-        try {
-          createAccountSchema(new_schema_name)
-          updateAccountSchema(new_schema_name, tenantId)
+        // Get hold of the cached list of tenant IDs and then add this new tenant to the list
+        getAllTenantIds() << tenantId
 
-          // Get hold of the cached list of tenant IDs and then add this new tenant to the list
-          getAllTenantIds() << tenantId
+        notify("okapi:tenant_schema_created", new_schema_name)
+        notify("okapi:tenant_list_updated", getAllTenantIds())
 
-          notify("okapi:tenant_schema_created", new_schema_name)
-          notify("okapi:tenant_list_updated", getAllTenantIds())
-        
-          // Having trouble catching the event in the global listener. Call directly for now.
-          RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
-        }
-        catch ( Exception e ) {
-          log.error("Problem registering module for tenant/schema",e);
-        }
+        // Having trouble catching the event in the global listener. Call directly for now.
+        RemoteOkapiLinkListener.listenForConnectionSourceName(new_schema_name)
       }
-      
-      // Make this serial and the tenant parameter is now currently a noop.
-      GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
-      handleTenantParameters( tenantId, tenantData )
-      notify("okapi:tenant_enabled", tenantId)
-      log.debug("enableTenant exit cleanly");
+      catch ( Exception e ) {
+        log.error("Problem registering module for tenant/schema",e);
+      }
+    }
+
+    // Make this serial and the tenant parameter is now currently a noop.
+    GrailsDomainRefdataHelpers.setDefaultsForTenant(new_schema_name)
+    handleTenantParameters( tenantId, tenantData )
+    notify("okapi:tenant_enabled", tenantId)
+    log.debug("enableTenant exit cleanly");
   }
 
   synchronized void createAccountSchema(String tenantId) {
     Sql sql = null
     try {
-        sql = new Sql(dataSource as DataSource)
-        sql.withTransaction {
-          log.debug("Execute -- create schema ${tenantId}");
-          sql.execute("create schema ${tenantId}" as String)
-        }
-        notify("okapi:tenant_created", tenantId)
+      sql = new Sql(dataSource as DataSource)
+      sql.withTransaction {
+        log.debug("Execute -- create schema (if not exists) ${tenantId}");
+        sql.execute("CREATE SCHEMA IF NOT EXISTS ${tenantId}" as String)
+      }
+      notify("okapi:tenant_created", tenantId)
     } finally {
-        sql?.close()
+      sql?.close()
     }
   }
 
@@ -127,32 +126,42 @@ class OkapiTenantAdminService implements EventPublisher {
     try {
       sql = new Sql(dataSource as DataSource)
       sql.withTransaction {
-          log.debug("Execute -- drop schema ${schema_name} cascade")
-          sql.execute("drop schema ${schema_name} cascade" as String)
+        log.debug("Execute -- drop schema ${schema_name} cascade")
+        sql.execute("drop schema ${schema_name} cascade" as String)
       }
-      
-      getAllTenantIds().remove(tenantId)
-      notify("okapi:tenant_purged", schema_name)
     } finally {
-        sql?.close()
+      sql?.close()
+    }
+
+    disableTenant (tenantId, false)
+
+    notify("okapi:tenant_purged", schema_name)
+  }
+
+  synchronized void disableTenant(String tenantId, boolean raiseEvent = true) {
+    log.debug("TenantAdminService::disableTenant(${tenantId})")
+    String schema_name = OkapiTenantResolver.getTenantSchemaName (tenantId)
+
+    HibernateDatastore childDatastore = hibernateDatastore.getDatastoreForConnection(schema_name)
+    // childDatastore.close() Don't do this as it clears GORM mappings.
+    childDatastore.connectionSources.close()
+    hibernateDatastore.datastoresByConnectionSource.remove( schema_name )
+    getAllTenantIds().remove(tenantId)
+
+    if (raiseEvent) {
+      notify("okapi:tenant_disabled", tenantId)
     }
   }
-  
-  synchronized void disableTenant(String tenantId) {
-    log.debug("TenantAdminService::disableTenant(${tenantId})")
-    /* NOOP Just raise an event */
-    notify("okapi:tenant_disabled", tenantId)
-  }
-  
+
   public synchronized Set<Serializable> getAllTenantIds () {
     log.trace ("TenantAdminService::getAllTenantIds (${})")
     if (allTenantIdentifiers == null) {
-      
+
       // Initializing all tenants.
       log.debug ("allTenantIdentifiers is NULL - so establish the list and pull default values from the database");
       allTenantIdentifiers = []
       allTenantSchemaIdentifiers = []
-      
+
       ResultSet schemas = dataSource.getConnection().getMetaData().getSchemas()
       while(schemas.next()) {
         String schema_name = schemas.getString("TABLE_SCHEM")
@@ -167,38 +176,38 @@ class OkapiTenantAdminService implements EventPublisher {
       }
 
       // This is the first pass through - so let anyone interested know what the current list of tenants is.
-      // The methods for enableTenant (Newly enable the module for a tenant) and performSchemaCheck (Detecting 
+      // The methods for enableTenant (Newly enable the module for a tenant) and performSchemaCheck (Detecting
       // if a tenant has been added by a clustered instance of this module) can also fire off this event.
       notify("okapi:tenant_list_updated", allTenantIdentifiers)
     }
-    
-    allTenantIdentifiers    
+
+    allTenantIdentifiers
   }
-  
+
   Set<Serializable> getAllTenantSchemaIds () {
     log.trace ("TenantAdminService::getAllTenantSchemaIds")
-    
+
     if (!allTenantSchemaIdentifiers) {
       // Initializes both Sets.
       getAllTenantIds()
     }
-    
+
     // We should rebuild if we are now out of date with the list of ids.
     if (allTenantSchemaIdentifiers.size() < allTenantIdentifiers.size()) {
       allTenantSchemaIdentifiers = getAllTenantIds().collect { Serializable id -> OkapiTenantResolver.getTenantSchemaName(id) }
     }
-    
+
     allTenantSchemaIdentifiers
   }
 
   synchronized void freshenAllTenantSchemas() {
     log.debug("freshenAllTenantSchemas()")
-    
+
     for ( final Serializable tenantId : getAllTenantIds() ) {
       final schema_name = OkapiTenantResolver.getTenantSchemaName(tenantId)
       updateAccountSchema(schema_name,tenantId)
     }
-    
+
     notify("okapi:all_schemas_refreshed")
   }
 

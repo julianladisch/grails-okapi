@@ -11,12 +11,6 @@ buildscript {
 
 }
 
-/**
- * II: Have updated maven deployer now uses gradle uploadArchives to upload build artefacts to
- * nexus. Suggest we leave the version as -SNAPSHOT by default and only set it to a final release
- * on release, then bump the version to the next -SNAPSHOT after release to prevent any accidental
- * changes to released modules.
- */
 version "3.6.15"
 group "com.k_int.okapi"
 
@@ -82,21 +76,4 @@ bootRun {
 
 // enable if you wish to package this plugin as a standalone application
 bootRepackage.enabled = false
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: "http://nexus.k-int.com/content/repositories/releases/") {
-                def usr = project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
-                def pass = project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
-                authentication(userName: usr, password: pass)
-            }
-            snapshotRepository(url: "http://nexus.k-int.com/content/repositories/snapshots/") {
-                def usr = project.hasProperty('knowintNexusUser') ? knowintNexusUser :''
-                def pass = project.hasProperty('knowintNexusPass') ? knowintNexusPass :''
-                authentication(userName: usr, password: pass)
-            }
-        }
-    }
-}
 

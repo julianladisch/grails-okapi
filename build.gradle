@@ -11,7 +11,7 @@ buildscript {
 
 }
 
-version "3.6.16"
+version "3.6.17"
 group "com.k_int.okapi"
 
 apply plugin:"eclipse"
@@ -22,7 +22,7 @@ apply plugin:"org.grails.plugins.views-json"
 
 eclipse {
   classpath {
-    defaultOutputDir = file('bin/main')
+    defaultOutputDir = file('bin').canonicalFile
   }
 }
 

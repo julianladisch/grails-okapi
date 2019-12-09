@@ -28,7 +28,7 @@ if(remoteOkapiLink.hasProperty(objectProperty)){
   }
 }
 
-json g.render(remoteOkapiLink) {
+json g.render(remoteOkapiLink, ['includes':['id', 'remoteId', 'version']]) {
   if (remoteObjValue) {
     call( objectProperty, remoteObjValue )
   }

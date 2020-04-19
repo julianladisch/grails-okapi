@@ -57,20 +57,31 @@ class OkapiTenantResolver implements TenantResolver {
     APP_SCHEMA_NAME
   }
   
-  @Override
-  Serializable resolveTenantIdentifier() {
-
-    RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes()
+  
+  /**
+   * Nicely return a tenant ID without throwing exception when the current request isn't
+   * bound to a tenant.
+   * @return The current tenant or null
+   * @throws TenantNotFoundException if this is not a web request
+   */
+  static Serializable resolveTenantIdentifierOptionally() throws TenantNotFoundException {
+    final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes()
     if(requestAttributes instanceof ServletWebRequest) {
-      HttpServletRequest httpServletRequest = ((ServletWebRequest) requestAttributes).getRequest()
-      String tenantId = httpServletRequest.getHeader(OkapiHeaders.TENANT.toLowerCase())?.toLowerCase()
+      final HttpServletRequest httpServletRequest = ((ServletWebRequest) requestAttributes).getRequest()
+      final Serializable tenantId = httpServletRequest.getHeader(OkapiHeaders.TENANT.toLowerCase())?.toLowerCase()
 
-      if ( tenantId ) {
-        return getTenantSchemaName(tenantId)
-      }
-      throw new TenantNotFoundException("Tenant could not be resolved from HTTP Header: ${OkapiHeaders.TENANT}")
+      return tenantId ? getTenantSchemaName(tenantId) : null
     }
 
     throw new TenantNotFoundException("Tenant could not be resolved outside a web request")
+  }
+  
+  @Override
+  Serializable resolveTenantIdentifier() {
+    final Serializable currentTenant = resolveTenantIdentifierOptionally()
+    if (currentTenant) {
+      return currentTenant
+    }
+    throw new TenantNotFoundException("Tenant could not be resolved from HTTP Header: ${OkapiHeaders.TENANT}")
   }
 }

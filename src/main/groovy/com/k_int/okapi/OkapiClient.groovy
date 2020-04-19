@@ -3,6 +3,7 @@ package com.k_int.okapi
 import static groovyx.net.http.ContentTypes.JSON
 import static groovyx.net.http.HttpBuilder.configure
 
+import com.github.zafarkhaja.semver.Version
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.SynchronousQueue
@@ -16,7 +17,6 @@ import org.grails.datastore.mapping.multitenancy.exceptions.TenantNotFoundExcept
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
 import org.grails.web.servlet.mvc.GrailsWebRequest
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.context.request.RequestContextHolder
 
@@ -34,8 +34,19 @@ import groovyx.net.http.HttpException
 import groovyx.net.http.NativeHandlers
 import groovyx.net.http.UriBuilder
 
+/**
+ * @TODO: This is getting too big and not well scoped.
+ * @author Steve Osguthorpe<steve.osguthorpe@k-int.com>
+ * 
+ * Client for communicating with OKAPI and any modules
+ * it is aware of. 
+ */
 @Slf4j
 class OkapiClient {
+  
+  private static final String URI_PROXY = "/_/proxy"
+  private static final String URI_VERSION = "/_/version"
+  private static final String URI_DISCOVERY = "/_/discovery"
   
   private SimpleTemplateEngine tmplEng = new SimpleTemplateEngine()
   
@@ -186,7 +197,6 @@ class OkapiClient {
     }
   }
   
-  
   private def cacheValue(final String key, final def value) {
     def req = requestObject
     if (req) {
@@ -208,6 +218,11 @@ class OkapiClient {
     requestCache?.get(key)
   }
   
+  private static Serializable getCurrentTenantId () {
+    final String tenantId = Tenants.CurrentTenant.get() ?: OkapiTenantResolver.resolveTenantIdentifierOptionally()
+    tenantId ? OkapiTenantResolver.schemaNameToTenantId( tenantId ) : null
+  }
+  
   private final Map mapFromRequest() {
     
     log.trace "Current headers are:"
@@ -226,12 +241,17 @@ class OkapiClient {
     
     // Add tenant specific header here.
     try {
-      String tenantId = OkapiTenantResolver.schemaNameToTenantId( Tenants.currentId().toString() )
-      theMap['headers'][(OkapiHeaders.TENANT)] = OkapiTenantResolver.schemaNameToTenantId( Tenants.currentId().toString() )      
-      log.debug "Adding header for tenant ${tenantId}"
+      final String tenantId = getCurrentTenantId()
+      if (tenantId) {
+        theMap['headers'][(OkapiHeaders.TENANT)] = tenantId
+        log.debug "Adding header for tenant ${tenantId}"
+      } else {
+        log.debug ('No tenant specific headers added as no current tenant for this request.')
+      }
+      
     } catch (TenantNotFoundException e) {
       /* No tenant */
-      log.debug ('No tenant specific headers added as no current tenant for this request.')
+      log.debug ('Failed to resolve tenant')
     } catch (UnsupportedOperationException e) {
       /* Datastore doesn't support multi-tenancy */
       log.debug ('No tenant specific headers added as Multitenancy not supported.')
@@ -268,25 +288,20 @@ class OkapiClient {
       cfg.request.uri.port = overrides.port
     }
     
-    // If there is a proxy... We should use that, but only if we have picked up an OKAPI request.
-//    if (!(okapiHost && okapiPort) && proxyHost) {
-//      String[] parts = proxyHost.split(':')
-//      
-//      log.debug "Proxy present... Changing host to ${parts[0]}"
-//      cfg.request.uri.host = parts[0]
-//      
-//      if (parts.length > 1) {
-//        log.debug "\t...and port to ${parts[1]}"
-//        cfg.request.uri.port = (parts[1] as Integer)
-//      }
-//    }
-    
     log.debug "Url is now ${cfg.request.uri.toURI()}"
+  }
+  
+  /**
+   * Fetch the version of the OKAPI we are talking to.
+   * @return The version string
+   */
+  String getVersion() {
+    getSync(version)
   }
   
   @PostConstruct
   void init () {
-    final String appName = Metadata.current.applicationName   
+    final String appName = Metadata.current.applicationName
         
     final String root = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : null
     client = configure {
@@ -358,7 +373,6 @@ class OkapiClient {
   /**
    * Because of a limitation of not being able to uppercase text within Kubernetes to generate the
    * necessary value. We may end up with a mixed case env variable that therefore gets missed. Try and clean here.
-   * 
    */
   private final String cleanVals(String val) {
     
@@ -391,19 +405,19 @@ class OkapiClient {
       // Post the descriptor to OKAPI
       def payload = new JsonSlurper().parseText ( modDescriptor.inputStream.text )
       
-      log.info "Registering module with OKAPI... request path is /_/proxy/modules/${payload.id}"
+      log.info "Registering module with OKAPI... request path is ${URI_PROXY}/modules/${payload.id}"
       
       // Send the info.
       def response
       try {
-        response = put ("/_/proxy/modules/${payload.id}", payload)
+        response = put ("${URI_PROXY}/modules/${payload.id}", payload)
         
         log.info "Success: Got response ${response}"
       } catch (HttpException err) {
         // Error on put for update. Try posting for new mod.
         log.info "Error updating. Must be newly registering. err:${err} sc:${err.getStatusCode()}"
         
-        response = post ('/_/proxy/modules', payload)
+        response = post ("${URI_PROXY}/modules", payload)
         log.info "Success: Got response ${response}"
       }
     } else {
@@ -445,7 +459,7 @@ class OkapiClient {
 //        payload.instId = java.util.UUID.randomUUID().toString()
       }
       
-      final String discoUrl = '/_/discovery/modules'
+      final String discoUrl = "${URI_DISCOVERY}/modules"
       
       def response
       try {
@@ -577,5 +591,84 @@ class OkapiClient {
         expand.rehydrate(delegate, expand.owner, thisObject)()
       }
     })
+  }
+  
+  public class OkapiTenantClient {
+    
+    private final OkapiClient client
+    private static final String URI_TENANTS = "${URI_PROXY}/tenants"
+    
+    private OkapiTenantClient() { /* Hidden */ }
+    private OkapiTenantClient(OkapiClient client) {
+      this.client = client
+    }
+    
+    private Serializable getCurrent() {
+      getCurrentTenantId()
+    }
+    
+    private String getCurrentUri() {
+      "${URI_TENANTS}/${getCurrent()}"
+    }
+    
+    private Version padToSemver ( final String version ) {
+      if (version) {
+        String semVerStr = version
+        for (int i=version.split(/\./).length; i<3; i++) {
+          semVerStr += '.0'
+        }
+        
+        return Version.valueOf( semVerStr )
+      }
+      
+      null
+    }
+    
+    boolean canTalk ( final String interfaceName, final String version ) {
+     
+      if (interfaceName && version) {        
+        final String providedVersion = getInterfaces()?.get(interfaceName)?.getAt(0)
+        if (providedVersion) {
+          // Check that we can satisfy the request
+          return padToSemver(providedVersion).greaterThanOrEqualTo(
+            padToSemver(version)
+          )
+        }
+      }
+      
+      false
+    }
+    
+    Map<String, Set<String>> getInterfaces() {
+      final String cacheKey = 'getInterfaces'
+      Map<String, Set<String>> keyedInterfaces = retrieveCacheValue(cacheKey)
+      if (!keyedInterfaces) {
+        keyedInterfaces = cacheValue (cacheKey, [:])
+        
+        final List<Map<String, String>> interfaces = client.getSync("${getCurrentUri()}/interfaces")
+        
+        interfaces.each { Map<String, String> ent ->
+          if (!keyedInterfaces.containsKey(ent.id)) {
+            keyedInterfaces[ent.id] = []
+          }
+          keyedInterfaces[ent.id] << ent.version
+        }
+      }
+      
+      keyedInterfaces
+    }
+  }
+  
+  private OkapiTenantClient tenantClient
+  public OkapiTenantClient withTenant() {
+    if (tenantClient == null) {
+      tenantClient = new OkapiTenantClient(this)
+    }
+    
+    if (tenantClient.current == null) {
+      throw new UnsupportedOperationException("Cannot determine current tenant")
+    }
+    
+    tenantClient
   }
 }

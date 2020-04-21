@@ -624,18 +624,17 @@ class OkapiClient {
       null
     }
     
-    boolean canTalk ( final String interfaceName, final String version ) {
+    boolean providesInterface ( final String interfaceName, final String semverExpression ) {
      
-      if (interfaceName && version) {        
+      if (interfaceName && semverExpression) {        
         final String providedVersion = getInterfaces()?.get(interfaceName)?.getAt(0)
         if (!providedVersion) {
           log.debug "Enviroment does not provide interface: ${interfaceName}"
-        } 
-        
-        // Check that we can satisfy the request
-        return padToSemver(providedVersion).greaterThanOrEqualTo(
-          padToSemver(version)
-        )
+          return false
+        }
+                
+        // Provides some version of the interface.
+        return padToSemver(providedVersion).satisfies(semverExpression)
       }
       
       false

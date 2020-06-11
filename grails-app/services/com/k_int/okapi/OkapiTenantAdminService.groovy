@@ -48,7 +48,7 @@ class OkapiTenantAdminService implements EventPublisher {
 
         params.each { Map<String,String> entry ->
           final String key = entry?.key?.trim()
-          final boolean explicitSkip = (entry.value?.trim()?.toUpperCase() == 'FALSE')
+          final boolean explicitSkip = (entry.value?.toString()?.trim()?.toUpperCase() == 'FALSE')
           
           if (!explicitSkip && key?.toLowerCase()?.matches(/[a-z][a-z0-9_-]*/)) {
             final String event_name = "${event_prefix}${GrailsNameUtils.getScriptName(key).replaceAll('-', '_')}"

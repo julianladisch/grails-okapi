@@ -14,7 +14,7 @@ buildscript {
 }
 
 //version "4.0.0"
-group "com.k_int.grails"
+group "com.k_int.okapi"
 
 apply plugin: "eclipse"
 apply plugin: "maven"
@@ -83,7 +83,7 @@ dependencies {
 
   provided "org.postgresql:postgresql:42.2.14"
   
-  compile "org.hibernate:hibernate-core:5.4.18.Final"
+  compile "org.hibernate:hibernate-core:5.4.19.Final"
   compile "org.grails.plugins:views-json"
   compile 'com.ibm.icu:icu4j:62.1'
 

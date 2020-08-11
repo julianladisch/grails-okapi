@@ -1,15 +1,16 @@
 package com.k_int.okapi
 
-import org.grails.events.bus.*
 import org.grails.orm.hibernate.HibernateDatastore
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.security.Http401AuthenticationEntryPoint
 import org.springframework.boot.web.servlet.FilterRegistrationBean
+import org.springframework.http.HttpStatus
+import org.springframework.security.web.authentication.HttpStatusEntryPoint
+
 import com.k_int.okapi.remote_resources.OkapiLookupHelper
 import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.okapi.springsecurity.OkapiAuthAwareAccessDeniedHandler
 import com.k_int.okapi.springsecurity.OkapiAuthenticationFilter
 import com.k_int.okapi.springsecurity.OkapiAuthenticationProvider
+
 import grails.core.GrailsClass
 import grails.plugin.springsecurity.SecurityFilterPosition
 import grails.plugin.springsecurity.SpringSecurityUtils
@@ -61,7 +62,7 @@ class GrailsOkapiGrailsPlugin extends Plugin {
         // Lets load some OKAPI authentication beans for easy integration.
         
         // Change the authentication end point to throw a 401
-        authenticationEntryPoint(Http401AuthenticationEntryPoint, "realm='${grailsApplication.config?.info?.app?.name ?: 'OKAPI'}'")
+        authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED), "realm='${grailsApplication.config?.info?.app?.name ?: 'OKAPI'}'")
           
         // This filter registers itself in a particular order in the chain.
         okapiAuthenticationFilter(OkapiAuthenticationFilter){ bean ->

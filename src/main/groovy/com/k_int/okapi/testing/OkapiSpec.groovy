@@ -1,17 +1,11 @@
 package com.k_int.okapi.testing
 
-import static groovyx.net.http.ContentTypes.*
-import static org.springframework.http.HttpStatus.*
-
 import org.junit.Assume
-import org.springframework.beans.factory.annotation.Autowired
 
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiHeaders
 import com.k_int.web.toolkit.testing.HttpSpec
-import geb.spock.GebSpec
-import grails.util.Holders
-import grails.web.http.HttpHeaders
+
 import groovyx.net.http.FromServer
 import groovyx.net.http.FromServer.Header
 import spock.lang.Shared

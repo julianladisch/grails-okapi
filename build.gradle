@@ -87,8 +87,8 @@ dependencies {
   compile "org.grails.plugins:views-json"
   compile 'com.ibm.icu:icu4j:62.1'
 
-  provided 'org.grails.plugins:spring-security-core:4.0.0'
-  provided 'org.springframework.security:spring-security-web:5.1.8.RELEASE'
+  provided 'org.grails.plugins:spring-security-core:4.0.2'
+//  provided 'org.springframework.security:spring-security-web:5.1.8.RELEASE'
   
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.4'
 
@@ -96,8 +96,8 @@ dependencies {
   provided "org.seleniumhq.selenium:selenium-api:3.14.0"
   compile 'com.github.zafarkhaja:java-semver:0.9.0'
   
-  provided 'org.grails.plugins:database-migration:3.0.4'
-  provided 'org.liquibase:liquibase-core:3.5.5'
+  compile 'org.grails.plugins:database-migration:3.1.0'
+  compile 'org.liquibase:liquibase-core:3.10.1'
   
   provided "com.k_int.grails:web-toolkit:5.0.0-SNAPSHOT"
 }
@@ -117,6 +117,33 @@ bootRun {
 tasks.withType(GroovyCompile) {
   configure(groovyOptions) {
     forkOptions.jvmArgs = ['-Xmx1024m']
+  }
+}
+
+// Writes plugin data
+tasks.register("extendedConfigScript") { Task me ->
+  
+  // Find the correct file.
+  Task configTask = project.tasks.getByName('configScript')
+  File configFile = configTask.outputs.files.files.find { it.name == 'config.groovy' }
+  if(!configFile) {
+    return  // No need to continue if the file is not there
+  }
+  
+  me.inputs.property('version', project.version)
+  me.outputs.file(configFile)
+  project.tasks.getByName('compileGroovy').dependsOn( me )
+  me.dependsOn( configTask )
+  
+  doLast {
+    configFile.append("""
+
+/***** Extention *****/
+withConfig(configuration) {
+  inline(phase: 'CONVERSION') { source, context, classNode ->
+    classNode.putNodeMetaData('projectVersion', '$project.version')
+  }
+}""")
   }
 }
 

@@ -19,10 +19,12 @@ import grails.plugins.*
 class GrailsOkapiGrailsPlugin extends Plugin {
 
   // the version or versions of Grails the plugin is designed for
-  def grailsVersion = "3.3.2 > *"
+  def grailsVersion = "4.0.4 > 5.0"
   
   def dependsOn = [
-    "springSecurityCore": "3.2.0 > *"
+    "springSecurityCore": "4.0 > 5.0",
+    "webToolkit":         "5.0 > 6.0",
+//    "databaseMigration":  "3.1 > 4"  // Because this plugin doesn't currently set a version we cannot depend on it.
   ]
   // resources that are excluded from plugin packaging
   def pluginExcludes = [
@@ -39,7 +41,9 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   
   def profiles = ['web']
   def loadAfter = [
-    'springSecurityCore',
+    "springSecurityCore",
+    "webToolkit",
+    "databaseMigration",
     'hibernate'
   ]
 

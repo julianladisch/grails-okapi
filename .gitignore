@@ -1,4 +1,5 @@
 /.*
 !/.gitignore
+/grails-okapi
 /bin
 /build

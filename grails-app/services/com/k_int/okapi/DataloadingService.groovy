@@ -12,8 +12,10 @@ import org.grails.datastore.mapping.multitenancy.MultiTenantCapableDatastore
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
 import org.grails.orm.hibernate.HibernateDatastore
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.support.DefaultTransactionDefinition
 import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
-
+import com.k_int.web.toolkit.utils.GormUtils
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import grails.events.annotation.Subscriber
@@ -105,11 +107,15 @@ public class DataloadingService implements EventPublisher, DataBinder {
       final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
       final DelegatingScript script = (DelegatingScript)shell.parse(br)
       script.setBinding(new Binding(vars))
-      HibernateDatastore datastore = GormEnhancer.findSingleDatastore() as HibernateDatastore 
+      HibernateDatastore datastore = GormEnhancer.findSingleDatastore() as HibernateDatastore
       
       Tenants.withId(schemaName) {
+        
+        // Ensure the delegate of the script is set to the same as the wrapping closure.
         script.setDelegate(delegate)
-        script.run()
+        GormUtils.withTransaction {
+          script.run()
+        }
       }
       
       // Run the script with this class as the delegate.

@@ -96,8 +96,10 @@ dependencies {
   provided "org.seleniumhq.selenium:selenium-api:3.14.0"
   compile 'com.github.zafarkhaja:java-semver:0.9.0'
   
-  compile 'org.grails.plugins:database-migration:3.1.0'
-  compile 'org.liquibase:liquibase-core:3.10.1'
+  compile ('org.grails.plugins:database-migration:3.1.0') {
+    exclude group: 'org.liquibase', module: 'liquibase-core'
+  }
+  compile 'org.liquibase:liquibase-core:3.9.0'
   
   provided "com.k_int.grails:web-toolkit:5.0.0-SNAPSHOT"
 }

@@ -40,10 +40,11 @@ eclipse {
 }
 
 repositories {
-  mavenLocal()
+//  mavenLocal()
   jcenter()
   maven { url "https://repo.grails.org/grails/core" }
   maven { url "https://dl.bintray.com/grails/plugins" }
+  maven { url "http://maven.k-int.com/content/repositories/releases" }
 }
 
 configurations {
@@ -88,7 +89,6 @@ dependencies {
   compile 'com.ibm.icu:icu4j:62.1'
 
   provided 'org.grails.plugins:spring-security-core:4.0.2'
-//  provided 'org.springframework.security:spring-security-web:5.1.8.RELEASE'
   
   compile 'io.github.http-builder-ng:http-builder-ng-core:1.0.4'
 
@@ -101,7 +101,7 @@ dependencies {
   }
   compile 'org.liquibase:liquibase-core:3.9.0'
   
-  provided "com.k_int.grails:web-toolkit:5.0.0-SNAPSHOT"
+  provided 'com.k_int.grails:web-toolkit-ce:5.0.0-rc.1'
 }
 
 bootRun {

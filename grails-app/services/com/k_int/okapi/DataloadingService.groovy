@@ -1,4 +1,4 @@
-package com.k_int.okapi;
+package com.k_int.okapi
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -6,22 +6,16 @@ import javax.annotation.PostConstruct
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.runtime.DefaultGroovyMethodsSupport
-import org.grails.datastore.gorm.GormEnhancer
-import org.grails.datastore.mapping.core.Datastore
-import org.grails.datastore.mapping.multitenancy.MultiTenantCapableDatastore
 import org.grails.io.support.PathMatchingResourcePatternResolver
 import org.grails.io.support.Resource
-import org.grails.orm.hibernate.HibernateDatastore
-import org.springframework.transaction.TransactionDefinition
-import org.springframework.transaction.support.DefaultTransactionDefinition
-import com.k_int.web.toolkit.refdata.GrailsDomainRefdataHelpers
+
 import com.k_int.web.toolkit.utils.GormUtils
+
 import grails.core.GrailsApplication
 import grails.events.EventPublisher
 import grails.events.annotation.Subscriber
 import grails.gorm.multitenancy.Tenants
 import grails.util.Environment
-import grails.util.GrailsNameUtils
 import grails.web.databinding.DataBinder
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -95,20 +89,19 @@ public class DataloadingService implements EventPublisher, DataBinder {
     log.debug "executeTenantDataFile (${res}, ${tenantId}, ${vars})"
     BufferedReader br
     try {
+      
       // Delegating script.
-      CompilerConfiguration cc = new CompilerConfiguration()
+      final CompilerConfiguration cc = new CompilerConfiguration()
       cc.setScriptBaseClass(DelegatingScript.class.getName())
       
-      GroovyShell shell = new GroovyShell(cc)
+      // Create a shell with the classloader, binding and compiler config.
+      final GroovyShell shell = new GroovyShell(grailsApplication.getClassLoader() ,new Binding(vars), cc)
       
       // Reader. Needed as once the app is in a war the scripts will not be on the filesystem as such.
       br = new BufferedReader(new InputStreamReader(res.getInputStream()))
+      final DelegatingScript script = (DelegatingScript)shell.parse(br)      
       
       final String schemaName = OkapiTenantResolver.getTenantSchemaName(tenantId)
-      final DelegatingScript script = (DelegatingScript)shell.parse(br)
-      script.setBinding(new Binding(vars))
-      HibernateDatastore datastore = GormEnhancer.findSingleDatastore() as HibernateDatastore
-      
       Tenants.withId(schemaName) {
         
         // Ensure the delegate of the script is set to the same as the wrapping closure.

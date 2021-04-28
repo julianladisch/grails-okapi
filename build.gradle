@@ -8,8 +8,8 @@ buildscript {
     classpath "org.grails:grails-gradle-plugin:$grailsVersion"
     classpath "org.grails.plugins:hibernate5:${gormHibernate-".RELEASE"}"
     classpath "gradle.plugin.com.github.erdi.webdriver-binaries:webdriver-binaries-gradle-plugin:2.0"
-    classpath "org.grails.plugins:views-gradle:2.+"
-    classpath "com.k_int.gradle:kint-gradle-plugin:1.6.2"
+    classpath "org.grails.plugins:views-gradle:2.0.2"
+    classpath "com.k_int.gradle:kint-gradle-plugin:2.0.0"
   }
 }
 
@@ -26,10 +26,17 @@ apply plugin: "com.k_int.gradle.conventional-git"
 
 eclipse {
   classpath {
-    defaultOutputDir = file('build/main')
+    defaultOutputDir = new File(project.buildDir.canonicalPath, 'main')
     file {
-      whenMerged {
-        entries.each {
+      whenMerged { classpath ->
+
+        entries.collect().each {
+
+          if (it.path =='grails-app/conf' && it.output?.toLowerCase().endsWith('test')) {
+            classpath.entries.remove( it )
+            println "Removed ${it}"
+          }
+
           if (it.hasProperty('output') && it.output.startsWith('bin/')) {
             it.output = 'build/' + it.output.substring(4)
           }
@@ -72,7 +79,8 @@ dependencies {
   provided "org.grails:grails-logging"
 //  provided "org.grails.plugins:cache" 
   provided "org.grails.plugins:hibernate5"
-//  provided "io.micronaut:micronaut-inject-groovy"
+  compileOnly "io.micronaut:micronaut-inject-groovy"
+  testCompile "io.micronaut:micronaut-inject-groovy"
   console "org.grails:grails-console"
   profile "org.grails.profiles:rest-api-plugin"
 
@@ -101,7 +109,7 @@ dependencies {
   }
   compile 'org.liquibase:liquibase-core:3.9.0'
   
-  provided 'com.k_int.grails:web-toolkit-ce:5.0.0-rc.1'
+  provided 'com.k_int.grails:web-toolkit-ce:5.1.0'
 }
 
 bootRun {

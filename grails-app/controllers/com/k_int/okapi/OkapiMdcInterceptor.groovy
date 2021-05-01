@@ -1,15 +1,13 @@
 package com.k_int.okapi
 
 import javax.servlet.http.HttpServletRequest
-import com.k_int.web.toolkit.mdc.TrackingMdcWrapper
+import org.slf4j.MDC
 import groovy.transform.CompileStatic
 
 
 @CompileStatic
 public class OkapiMdcInterceptor {
   
-  private static final TrackingMdcWrapper MDC = new TrackingMdcWrapper()
-
   int order = HIGHEST_PRECEDENCE + 50
 
   private final static String PREFIX = "x-okapi-"
@@ -18,14 +16,14 @@ public class OkapiMdcInterceptor {
   ] as String[]
 
   public OkapiMdcInterceptor() {
-    log.info "OkapiMdcInterceptor::Init"
+    log.debug "OkapiMdcInterceptor::Init"
     matchAll()
   }
 
   boolean before() {
     for (final String var : headersToVars) {
       
-      log.info "Looking for ${var}"
+      log.debug "Looking for ${var}"
       String val = request.getHeader(var)?.trim()
       if (val) {
         
@@ -33,7 +31,7 @@ public class OkapiMdcInterceptor {
         
         key = key.startsWith(PREFIX) ? key.substring(PREFIX.length()) : key
         
-        log.info "Adding log val ${key}"
+        log.debug "Adding log val ${key}"
         MDC.put(key, val)
       }
     }

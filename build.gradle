@@ -1,3 +1,8 @@
+//configurations.all {
+//  // Check for updates every build
+//  resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+//}
+
 buildscript {
   repositories {
     jcenter()
@@ -109,7 +114,7 @@ dependencies {
   }
   compile 'org.liquibase:liquibase-core:3.9.0'
   
-  provided 'com.k_int.grails:web-toolkit-ce:5.1.0'
+  provided 'com.k_int.grails:web-toolkit-ce:5.1.1'
 }
 
 bootRun {

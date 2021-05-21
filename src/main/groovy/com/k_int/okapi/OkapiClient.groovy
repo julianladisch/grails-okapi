@@ -34,6 +34,9 @@ import groovyx.net.http.HttpException
 import groovyx.net.http.NativeHandlers
 import groovyx.net.http.UriBuilder
 
+import grails.async.Promise
+import com.k_int.web.toolkit.async.WithPromises
+
 /**
  * @TODO: This is getting too big and not well scoped.
  * @author Steve Osguthorpe<steve.osguthorpe@k-int.com>
@@ -592,6 +595,135 @@ class OkapiClient {
       }
     })
   }
+
+  private Closure preserveCurrentTenantContext( Closure c ) {
+    final String tenantId = Tenants.CurrentTenant.get() ?: OkapiTenantResolver.resolveTenantIdentifierOptionally()
+    if (tenantId == null) return c;
+    return { Tenants.withId(tenantId, c) }
+  }
+
+  def getMultiInterface (
+      final String interfaceName,
+      final String semverExpression,
+      final String uri,
+      final Map params = null,
+      final Closure action = null
+    ) {
+      def results = []
+
+      List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
+
+      List<Promise> promises = []
+      interfaceProviders.each {ip ->
+        promises << WithPromises.task(preserveCurrentTenantContext({
+          getSync(uri, params) {
+            request.headers = ["X-Okapi-Module-Id": ip]
+          }
+        }))
+      }
+
+      def allReturns = WithPromises.waitAll (promises)
+      return allReturns.collect ( action ?: { it })
+    }
+
+    def postMultiInterface (
+      final String interfaceName,
+      final String semverExpression,
+      final String uri,
+      final def jsonData,
+      final Map params = null,
+      final Closure action = null
+    ) {
+      def results = []
+
+      List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
+
+      List<Promise> promises = []
+      interfaceProviders.each {ip ->
+        promises << WithPromises.task(preserveCurrentTenantContext({
+          post(uri, jsonData, params) {
+            request.headers = ["X-Okapi-Module-Id": ip]
+          }
+        }))
+      }
+
+      def allReturns = WithPromises.waitAll (promises)
+      return allReturns.collect ( action ?: { it })
+    }
+
+    def putMultiInterface (
+      final String interfaceName,
+      final String semverExpression,
+      final String uri,
+      final def jsonData,
+      final Map params = null,
+      final Closure action = null
+    ) {
+      def results = []
+
+      List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
+
+      List<Promise> promises = []
+      interfaceProviders.each {ip ->
+        promises << WithPromises.task(preserveCurrentTenantContext({
+          put(uri, jsonData, params) {
+            request.headers = ["X-Okapi-Module-Id": ip]
+          }
+        }))
+      }
+
+      def allReturns = WithPromises.waitAll (promises)
+      return allReturns.collect ( action ?: { it })
+    }
+
+    def deleteMultiInterface (
+      final String interfaceName,
+      final String semverExpression,
+      final String uri,
+      final Map params = null,
+      final Closure action = null
+    ) {
+      def results = []
+
+      List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
+
+      List<Promise> promises = []
+      interfaceProviders.each {ip ->
+        promises << WithPromises.task(preserveCurrentTenantContext({
+          delete(uri, params) {
+            request.headers = ["X-Okapi-Module-Id": ip]
+          }
+        }))
+      }
+
+      def allReturns = WithPromises.waitAll (promises)
+      return allReturns.collect ( action ?: { it })
+    }
+
+    def patchMultiInterface (
+      final String interfaceName,
+      final String semverExpression,
+      final String uri,
+      final def jsonData,
+      final Map params = null,
+      final Closure action = null
+    ) {
+      def results = []
+
+      List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
+
+      List<Promise> promises = []
+      interfaceProviders.each {ip ->
+        promises << WithPromises.task(preserveCurrentTenantContext({
+          patch(uri, jsonData, params) {
+            request.headers = ["X-Okapi-Module-Id": ip]
+          }
+        }))
+      }
+
+      def allReturns = WithPromises.waitAll (promises)
+      return allReturns.collect ( action ?: { it })
+    }
   
   public class OkapiTenantClient {
     
@@ -639,7 +771,18 @@ class OkapiClient {
       
       false
     }
-    
+
+    List<String> interfaceProviders ( final String interfaceName, final String semverExpression ) {
+      if (!providesInterface(interfaceName, semverExpression)) {
+        log.debug "Enviroment does not provide interface: ${interfaceName} for version: ${semverExpression}"
+        return []
+      }
+      
+      final List<String> providers = client.getSync("${getCurrentUri()}/modules", [provide: interfaceName]).collect { it.id }
+      return providers
+    }
+
+
     Map<String, Set<String>> getInterfaces() {
       final String cacheKey = 'getInterfaces'
       Map<String, Set<String>> keyedInterfaces = retrieveCacheValue(cacheKey)

@@ -609,14 +609,15 @@ class OkapiClient {
       final Map params = null,
       final Closure action = null
     ) {
-      def results = []
 
+      final Map rm = mapFromRequest()
       List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
 
       List<Promise> promises = []
       interfaceProviders.each {ip ->
         promises << WithPromises.task(preserveCurrentTenantContext({
           getSync(uri, params) {
+            addConfig(delegate, rm) // Put this first so you can override after.
             request.headers = ["X-Okapi-Module-Id": ip]
           }
         }))
@@ -634,14 +635,15 @@ class OkapiClient {
       final Map params = null,
       final Closure action = null
     ) {
-      def results = []
 
+      final Map rm = mapFromRequest()
       List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
 
       List<Promise> promises = []
       interfaceProviders.each {ip ->
         promises << WithPromises.task(preserveCurrentTenantContext({
           post(uri, jsonData, params) {
+            addConfig(delegate, rm) // Put this first so you can override after.
             request.headers = ["X-Okapi-Module-Id": ip]
           }
         }))
@@ -659,14 +661,15 @@ class OkapiClient {
       final Map params = null,
       final Closure action = null
     ) {
-      def results = []
 
+      final Map rm = mapFromRequest()
       List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
 
       List<Promise> promises = []
       interfaceProviders.each {ip ->
         promises << WithPromises.task(preserveCurrentTenantContext({
           put(uri, jsonData, params) {
+            addConfig(delegate, rm) // Put this first so you can override after.
             request.headers = ["X-Okapi-Module-Id": ip]
           }
         }))
@@ -683,14 +686,15 @@ class OkapiClient {
       final Map params = null,
       final Closure action = null
     ) {
-      def results = []
 
+      final Map rm = mapFromRequest()
       List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
 
       List<Promise> promises = []
       interfaceProviders.each {ip ->
         promises << WithPromises.task(preserveCurrentTenantContext({
           delete(uri, params) {
+            addConfig(delegate, rm) // Put this first so you can override after.
             request.headers = ["X-Okapi-Module-Id": ip]
           }
         }))
@@ -708,14 +712,15 @@ class OkapiClient {
       final Map params = null,
       final Closure action = null
     ) {
-      def results = []
 
       List<String> interfaceProviders = withTenant().interfaceProviders(interfaceName, semverExpression);
 
+      final Map rm = mapFromRequest()
       List<Promise> promises = []
       interfaceProviders.each {ip ->
         promises << WithPromises.task(preserveCurrentTenantContext({
           patch(uri, jsonData, params) {
+            addConfig(delegate, rm) // Put this first so you can override after.
             request.headers = ["X-Okapi-Module-Id": ip]
           }
         }))

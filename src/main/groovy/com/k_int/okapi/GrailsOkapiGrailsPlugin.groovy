@@ -23,7 +23,7 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   
   def dependsOn = [
     "springSecurityCore": "4.0 > 5.0",
-    "webToolkit":         "5.0 > 6.0",
+    "webToolkit":         "5.0 > 7.0",
 //    "databaseMigration":  "3.1 > 4"  // Because this plugin doesn't currently set a version we cannot depend on it.
   ]
   // resources that are excluded from plugin packaging

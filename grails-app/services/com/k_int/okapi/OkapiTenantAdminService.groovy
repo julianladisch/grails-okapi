@@ -258,10 +258,10 @@ class OkapiTenantAdminService implements EventPublisher {
    */
   public void performSchemaCheck(String tenantId) {
     if ( tenantId ) {
-      log.debug("Checking to see if ${tenantId} is already present in getAllTenantIds()  : ${getAllTenantIds().contains(tenantId)}")
+      log.trace("Checking to see if ${tenantId} is already present in getAllTenantIds()  : ${getAllTenantIds().contains(tenantId)}")
       if ( getAllTenantIds().contains(tenantId) ) {
         // Nothing to do - proceed
-        log.debug("performSchemaCheck(${tenantId}) -- true - no action needed")
+        log.trace("performSchemaCheck(${tenantId}) -- true - no action needed")
       }
       else {
         // request is for a tenant not yet configured -- process

@@ -130,4 +130,12 @@ Here is an example we use to nuke the olf-erm module.
     curl -XDELETE http://localhost:9130/_/discovery/modules/olf-erm-1.0.0/localhost-olf-erm-1.0.0
     curl -XDELETE http://localhost:9130/_/proxy/modules/olf-erm-1.0.0
 
+# Troubleshooting
 
+## Liquibase Lock / General memory constraints
+
+If you are running in an environment that allows fine grained control over memory and cpu resources be aware that
+adding k8s memory constraints WITHOUT setting -Xmx and other java memory settings may cause grails-okapi pods to be killed outright by the OOM-killer.
+In particular, this death can occour very early in the application lifestyle and has often been seen as liquibase starts it's upgrade cycle.
+IF you are seeing liquibase lock problems, look first to your memory configuration and local hosting setup. Ensure that you manually align your -Xmx values
+with whatever resource limits you are setting.

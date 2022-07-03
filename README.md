@@ -137,6 +137,11 @@ Here is an example we use to nuke the olf-erm module.
 
 If you are running in an environment that allows fine grained control over memory and cpu resources be aware that
 adding k8s memory constraints WITHOUT setting -Xmx and other java memory settings may cause grails-okapi pods to be killed outright by the OOM-killer.
-In particular, this death can occour very early in the application lifestyle and has often been seen as liquibase starts it's upgrade cycle.
+In particular, this death can occour very early in the application lifecycle and has often been seen as liquibase starts it's upgrade cycle.
 IF you are seeing liquibase lock problems, look first to your memory configuration and local hosting setup. Ensure that you manually align your -Xmx values
 with whatever resource limits you are setting.
+
+In FOLIO/Okapi projects this has commonly manifested itself in a failed pod, followed by subsequent runs bombing out because they are unable to acquire the lock.
+If you find yourself in this situation, correct the memory settings in your deployment, and then manually release the lock from the psql console with
+
+    update TENANT_mod_MODULE.tenant_changelog_lock set locked = false;

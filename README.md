@@ -107,6 +107,7 @@ class SomeController extends OkapiTenantAwareController<SomeMultiTenantDomain> {
     // Do something ...
   }
 }
+```
 
 # Build
 

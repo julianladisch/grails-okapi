@@ -6,6 +6,7 @@ import static groovyx.net.http.HttpBuilder.configure
 import com.github.zafarkhaja.semver.Version
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executor
 import java.util.concurrent.SynchronousQueue
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -84,6 +85,8 @@ class OkapiClient {
   HttpBuilder client
   
   final Map<String,Resource> descriptors = [:]
+  
+  private Executor executor
   
   boolean isRegistrationCapable() {
     descriptors.containsKey('module')
@@ -304,10 +307,25 @@ class OkapiClient {
   
   @PostConstruct
   void init () {
-    final String appName = Metadata.current.applicationName
+    
+    executor = new ThreadPoolExecutor(
+      3,  // Min Idle threads.
+      50, // 100 threads max.
+      1200, // 1.2 second wait.
+      TimeUnit.MILLISECONDS, // Makes the above wait time in 'seconds'
+      new SynchronousQueue<Runnable>() // Use a synchronous queue
+    )
         
+    client = configureBuilder(executor)
+    
+    registerAndDeploy()
+  }
+  
+  private HttpBuilder configureBuilder(final Executor executor, final int connectTimeout = 2000, final int readTimeout = 3000) {
+    final String appName = Metadata.current.applicationName
     final String root = (okapiHost && okapiPort) ? "http://${okapiHost}:${okapiPort}" : null
-    client = configure {
+    
+    configure {
       
       // Default root as specified in config.
       if (root) {
@@ -317,13 +335,7 @@ class OkapiClient {
       } else {
         log.info "No config options specifying okapiHost and okapiPort found on startup."
       }
-      execution.executor = new ThreadPoolExecutor(
-        3,  // Min Idle threads.
-        50, // 100 threads max.
-        1200, // 1.2 second wait.
-        TimeUnit.MILLISECONDS, // Makes the above wait time in 'seconds'
-        new SynchronousQueue<Runnable>() // Use a synchronous queue
-      )
+      execution.executor = executor
       
       // Default sending type.
       request.contentType = JSON[0]
@@ -336,12 +348,10 @@ class OkapiClient {
       
       // Add timeouts.
       client.clientCustomizer { HttpURLConnection conn ->
-        conn.connectTimeout = 2000
-        conn.readTimeout = 3000
+        conn.connectTimeout = connectTimeout
+        conn.readTimeout = readTimeout
       }
     }
-    
-    registerAndDeploy()
   }
 
   private void registerAndDeploy() {    
@@ -819,5 +829,43 @@ class OkapiClient {
     }
     
     tenantClient
+  }
+  
+  public OkapiClient withTimeouts(final int connectTimeout, final int readTimeout) {
+    
+    // New underlying client with timeouts.
+    HttpBuilder builderClient = this.configureBuilder(this.executor, connectTimeout, readTimeout)
+    
+    final OkapiClient tempClient = new OkapiClient(
+      this.tmplEng, this.grailsApplication, this.okapiHost, this.okapiPort, this.backReferenceHost,
+      this.backReferencePort, this.selfDeployFlag, this.selfRegisterFlag, builderClient, this.descriptors,
+      this.executor, this.templateMap)
+    
+    return tempClient
+  }
+
+  public OkapiClient() {
+    // Nothing
+  }
+  
+  private OkapiClient (SimpleTemplateEngine tmplEng,
+      GrailsApplication grailsApplication, String okapiHost, String okapiPort,
+      String backReferenceHost, String backReferencePort,
+      boolean selfDeployFlag, boolean selfRegisterFlag, HttpBuilder client,
+      Map<String, Resource> descriptors, Executor executor,
+      Map<String, Template> templateMap) {
+    super();
+    this.tmplEng = tmplEng;
+    this.grailsApplication = grailsApplication;
+    this.okapiHost = okapiHost;
+    this.okapiPort = okapiPort;
+    this.backReferenceHost = backReferenceHost;
+    this.backReferencePort = backReferencePort;
+    this.selfDeployFlag = selfDeployFlag;
+    this.selfRegisterFlag = selfRegisterFlag;
+    this.client = client;
+    this.descriptors = descriptors;
+    this.templateMap = templateMap;
+    this.executor = executor;
   }
 }

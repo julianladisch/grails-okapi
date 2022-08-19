@@ -4,9 +4,15 @@ package com.k_int.okapi.remote_resources;
 import java.util.concurrent.ConcurrentHashMap
 
 import org.grails.datastore.gorm.jdbc.schema.SchemaHandler
+import org.grails.datastore.mapping.core.connections.ConnectionSource
+import org.grails.datastore.mapping.core.connections.ConnectionSourcesListener
+import org.grails.datastore.mapping.core.connections.SingletonConnectionSources
 import org.grails.datastore.mapping.engine.event.*
 import org.grails.orm.hibernate.AbstractHibernateDatastore
+import org.grails.orm.hibernate.HibernateDatastore
 import org.grails.orm.hibernate.connections.HibernateConnectionSource
+import org.grails.orm.hibernate.connections.HibernateConnectionSourceSettings
+import org.hibernate.SessionFactory
 import org.springframework.beans.BeanUtils
 import org.springframework.context.ApplicationEvent
 import org.springframework.context.ConfigurableApplicationContext
@@ -15,6 +21,8 @@ import org.springframework.web.context.request.RequestContextHolder
 
 import com.k_int.okapi.OkapiClient
 import com.k_int.okapi.OkapiTenantResolver
+import com.k_int.okapi.system.FolioHibernateDatastore
+
 import grails.core.GrailsApplication
 import grails.util.Holders
 import grails.web.api.ServletAttributes
@@ -35,7 +43,11 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   
   protected final Set<String> datasourceNames = ConcurrentHashMap.newKeySet() 
   
-  public static void register (final AbstractHibernateDatastore datastore, final ConfigurableApplicationContext applicationContext) {
+  public static void register (final AbstractHibernateDatastore abstractHibernateDatastore, final ConfigurableApplicationContext applicationContext) {
+    
+    if (!(abstractHibernateDatastore instanceof FolioHibernateDatastore)) return // NOOP
+    
+    FolioHibernateDatastore datastore = abstractHibernateDatastore as FolioHibernateDatastore
     
     if (!singleton) {
       // Create the listener
@@ -43,32 +55,22 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
     
       log.debug "Adding RemoteOkapiLinkListener for datastore ${datastore}'s children"
       
-      // Schema handler is private. Re-initialise it from the connection settings.
-      Class<? extends SchemaHandler> schemaHandlerClass = datastore.connectionSources.defaultConnectionSource.settings.dataSource.schemaHandler
-      SchemaHandler schemaHandler = BeanUtils.instantiate(schemaHandlerClass)
-      
-      // Assume Hibernate connection, given Hibernate store
-      HibernateConnectionSource hcs = datastore.connectionSources.defaultConnectionSource as HibernateConnectionSource
-      
-      // Grab all the Okapi schemas.
-      def okapiSchemas = schemaHandler.resolveSchemaNames(hcs.dataSource).findResults { OkapiTenantResolver.isValidTenantSchemaName( it ) ? it : null }
+      // Grab all Child datasources that are applicable
+      Collection<String> okapiSchemas = datastore.allConfiguredTenantConnectionSourceNames() 
       
       if (okapiSchemas) {
         
         // Add all Okapi schema names. 
         for (String schema : okapiSchemas) {
-          final AbstractHibernateDatastore ds = datastore.getDatastoreForConnection ( schema )
-  
-          // For this listener we use the datasource name.
-          singleton.datasourceNames << ds.dataSourceName
-          log.debug "\t...watching ${ds.dataSourceName}"
+          listenForConnectionSourceName( schema )
         }
       }
+      
     } else {
       log.warn "Application listener already exists. Not adding again."
     }
   }
-  
+    
   private RemoteOkapiLinkListener(final ConfigurableApplicationContext applicationContext) {
     
     // Just fetch the bean.
@@ -79,7 +81,14 @@ class RemoteOkapiLinkListener implements PersistenceEventListener, ServletAttrib
   }
   
   public static void listenForConnectionSourceName(final String connName) {
-    singleton.datasourceNames << connName
+    if (OkapiTenantResolver.isValidTenantSchemaName(connName)) {
+      singleton.datasourceNames << connName
+      log.debug "watching ${connName}"
+    }
+  }
+  
+  public static void stopListeningForConnectionSourceName(final String connName) {
+    singleton.datasourceNames.remove(connName)
   }
   
   private ConcurrentHashMap<String, Boolean> validSourceCache = [:] as ConcurrentHashMap<String, Boolean>

@@ -1,8 +1,8 @@
 package com.k_int.okapi.system
 
-import java.sql.Connection
-import java.sql.SQLException
 import java.util.concurrent.ConcurrentHashMap
+
+import javax.annotation.PreDestroy
 import javax.sql.DataSource
 
 import org.grails.datastore.gorm.events.ConfigurableApplicationContextEventPublisher
@@ -11,10 +11,8 @@ import org.grails.datastore.mapping.core.Datastore
 import org.grails.datastore.mapping.core.DatastoreUtils
 import org.grails.datastore.mapping.core.connections.ConnectionSource
 import org.grails.datastore.mapping.core.connections.ConnectionSourcesSupport
-import org.grails.datastore.mapping.model.DatastoreConfigurationException
 import org.grails.datastore.mapping.model.PersistentEntity
 import org.grails.datastore.mapping.multitenancy.AllTenantsResolver
-import org.grails.datastore.mapping.multitenancy.MultiTenancySettings
 import org.grails.orm.hibernate.HibernateDatastore;
 import org.grails.orm.hibernate.HibernateGormEnhancer
 import org.grails.orm.hibernate.connections.HibernateConnectionSource
@@ -22,15 +20,11 @@ import org.grails.orm.hibernate.connections.HibernateConnectionSourceFactory
 import org.hibernate.cfg.Environment
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.core.env.PropertyResolver
-import org.springframework.jdbc.datasource.ConnectionHolder
-import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy
-import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import grails.gorm.MultiTenant
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import net.bytebuddy.implementation.bind.annotation.Super
 import services.k_int.core.SystemDataService
 import services.k_int.core.liquibase.ExtendedGrailsLiquibase
 
@@ -85,7 +79,8 @@ public class FolioHibernateDatastore extends HibernateDatastore {
   protected void createSystemSchema() {
     Sql sql = null
     try {
-
+      
+      log.info 'FolioHibernateDatastore:createSystemSchema'
       // Cast the event publisher so we can get at the application context below.
       // We do this because the internal property has not yet been set when this method is invoked.
       ConfigurableApplicationContextEventPublisher ep = (ConfigurableApplicationContextEventPublisher) this.eventPublisher
@@ -220,7 +215,8 @@ public class FolioHibernateDatastore extends HibernateDatastore {
 
   @Override
   protected HibernateGormEnhancer initialize() {
-
+    
+    log.info 'FolioHibernateDatastore:initialize'
     createSystemSchema()
     addSystemDatastore()
     initializeGormEnhancer()
@@ -252,5 +248,22 @@ public class FolioHibernateDatastore extends HibernateDatastore {
             return allQualifiers;
           }
         }
+  }
+  
+  @Override
+  public void destroy() {
+    try {
+        super.destroy();
+    } catch (Exception e) {
+      // Suppress
+    }
+  }
+
+  @Override
+  @PreDestroy
+  public void close() {
+    try {
+        destroy();
+    } catch (Exception e) {  }
   }
 }

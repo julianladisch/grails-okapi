@@ -23,15 +23,15 @@ public abstract class AppInstanceDataService {
   protected abstract AppInstance getAppInstance( Serializable id, Map args =[:] )
   
   @Transactional(propagation=MANDATORY)
-  protected abstract List<AppInstance> findAllByRoleAndIdNotEqualAndLastPulseGreaterThan(
-    FederationRole role, String id = instanceId, Instant pulse = Instant.now().minusMillis(180000L), Map args = [lock: true] )
+  protected abstract List<AppInstance> findAllByRoleAndFamilyAndIdNotEqualAndLastPulseGreaterThan(
+    FederationRole role, String family, String id = instanceId, Instant pulse = Instant.now().minusMillis(180000L), Map args = [lock: true] )
   
   @Transactional(propagation=MANDATORY)
-  protected abstract List<AppInstance> findAllByLastPulseGreaterThan(
-    Instant pulse = Instant.now().minusMillis(180000L), Map args = [lock: true] )
+  protected abstract List<AppInstance> findAllByFamilyAndLastPulseGreaterThan(
+   String family,  Instant pulse = Instant.now().minusMillis(180000L), Map args = [lock: true] )
   
   @Transactional(propagation=MANDATORY)
-  protected abstract List<AppInstance> findAllByIdNotEqualAndLastPulseLessThan( String id, Instant pulse, Map args )
+  protected abstract List<AppInstance> findAllByFamilyAndIdNotEqualAndLastPulseLessThan( String family, String id, Instant pulse, Map args )
   
   @Transactional(propagation=MANDATORY)
   AppInstance lockAppInstance( Serializable id ) {
@@ -39,18 +39,18 @@ public abstract class AppInstanceDataService {
   }
   
   @Transactional(propagation=MANDATORY)
-  List<AppInstance> getHealthyLeaders () {
-    findAllByRoleAndIdNotEqualAndLastPulseGreaterThan( FederationRole.LEADER, instanceId, Instant.now().minusMillis(180000L), [lock: true] )
+  List<AppInstance> getHealthyLeaders (final String family) {
+    findAllByRoleAndFamilyAndIdNotEqualAndLastPulseGreaterThan( FederationRole.LEADER, family, instanceId, Instant.now().minusMillis(180000L), [lock: true] )
   }
   
   @Transactional(propagation=MANDATORY)
-  List<AppInstance> getUnhealthyInstances () {
-    findAllByIdNotEqualAndLastPulseLessThan( instanceId, Instant.now().minusMillis(180000L), [lock: true] )
+  List<AppInstance> getUnhealthyInstances (final String family) {
+    findAllByFamilyAndIdNotEqualAndLastPulseLessThan( family, instanceId, Instant.now().minusMillis(180000L), [lock: true] )
   }
   
   @Transactional(propagation=MANDATORY)
-  List<AppInstance> getHealthyInstances () {
-    findAllByLastPulseGreaterThan()
+  List<AppInstance> getHealthyInstances (final String family) {
+    findAllByFamilyAndLastPulseGreaterThan(family)
   }
   
   @Transactional(propagation=REQUIRED)

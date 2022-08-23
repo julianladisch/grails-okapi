@@ -86,7 +86,7 @@ class AppFederationService implements EventPublisher {
     _instanceId = appInst.id
     
     folioLockService.federatedLockAndDo('federation_promote', {
-      final List<AppInstance> leaders = appInstanceService.getHealthyLeaders()
+      final List<AppInstance> leaders = appInstanceService.getHealthyLeaders(getFamilyName())
       
       if (leaders.size() > 0) {
         // Already have a leader. Just return the instance record.
@@ -131,7 +131,7 @@ class AppFederationService implements EventPublisher {
     assertLeader()
     
     log.debug 'Cleanup any unhealthy instances'
-    for (final AppInstance unhealthyInstance : appInstanceService.unhealthyInstances) {
+    for (final AppInstance unhealthyInstance : appInstanceService.getUnhealthyInstances(getFamilyName())) {
       final long millisInactive = Instant.now().minusMillis(unhealthyInstance.lastPulse.toEpochMilli()).toEpochMilli()
       
       log.debug "Found instance: ${unhealthyInstance.id}, which has been inactive for ${(millisInactive / 1000)} seconds."
@@ -140,7 +140,7 @@ class AppFederationService implements EventPublisher {
   }
   
   public Collection<String> allHealthyInstanceIds() {
-    appInstanceService.healthyInstances.collect { it.id }
+    appInstanceService.getHealthyInstances(getFamilyName()).collect { it.id }
   }
   
   private static void assertLeader() {
@@ -163,7 +163,7 @@ class AppFederationService implements EventPublisher {
     if (_role == FederationRole.LEADER) return;
     
     folioLockService.federatedLockAndDo('federation_promote', {
-      final List<AppInstance> leaders = appInstanceService.getHealthyLeaders()
+      final List<AppInstance> leaders = appInstanceService.getHealthyLeaders(getFamilyName())
       
       if (leaders.size() > 0) {
         // Already have a leader. Just return the instance record.

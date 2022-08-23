@@ -1,6 +1,16 @@
 # Changelog
 
+## Version 5.0.0-beta.3
+
+### Fixes
+* [General]
+	* Include the family when fetching instances.
+
 ## Version 5.0.0-beta.2
+
+### Changes
+* [Chore]
+	* Changelog - Generate the changelog
 
 ### Fixes
 * [General]

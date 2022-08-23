@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 5.0.0-beta.2
+
+### Fixes
+* [General]
+	* Prevent exception when app is killed.
+	* Allow includes from grails pluggins
+
 ## Version 5.0.0-beta.1
 
 ### Additions
@@ -8,6 +15,7 @@
 
 ### Changes
 * [Chore]
+	* Changelog - Generate the changelog
 	* Upgrade gradle plugin
 	* Turn down logging (debug to trace) in OkapiTenantAdminService so that performSchemaCheck doesn't by default log 2 lines on every http request
 

@@ -1,6 +1,16 @@
 # Changelog
 
+## Version 5.0.0
+
+### Changes
+* [Chore]
+	* Bump toolkit compilation target
+
 ## Version 5.0.0-beta.3
+
+### Changes
+* [Chore]
+	* Changelog - Generate the changelog
 
 ### Fixes
 * [General]

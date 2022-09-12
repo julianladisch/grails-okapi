@@ -141,7 +141,7 @@ dependencies {
   }
   compile 'org.liquibase:liquibase-core:3.9.0'
   
-  provided 'com.k_int.grails:web-toolkit-ce:6.0.1'
+  provided 'com.k_int.grails:web-toolkit-ce:6.3.0'
 }
 
 bootRun {

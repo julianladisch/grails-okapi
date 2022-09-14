@@ -1,5 +1,4 @@
 package com.k_int.okapi.system
-
 import java.util.concurrent.ConcurrentHashMap
 
 import javax.annotation.PreDestroy
@@ -40,22 +39,23 @@ public class FolioHibernateDatastore extends HibernateDatastore {
   private PropertyResolver getSystemSourceSettings() {
 
     if (_systemSourceSettings) return _systemSourceSettings
-
+      
     _systemSourceSettings = DatastoreUtils.createPropertyResolvers(
-        [
-          (Settings.PREFIX) : this.connectionDetails.getProperty((Settings.PREFIX), Map, [:]) as Map, // grails.gorm
-          (PROPERTY_HIBERNATE) : this.connectionDetails.getProperty((PROPERTY_HIBERNATE), Map, [:]) as Map, // hibernate
-          (Settings.SETTING_DATASOURCE) : this.connectionDetails.getProperty((Settings.SETTING_DATASOURCE), Map, [:]) as Map // datasource
-        ] as Map,
-        // Defaults for the system DS only.
-        [
-          (Environment.DEFAULT_SCHEMA): SystemDataService.getSystemDatasourceSchemaName(),
-          (Settings.SETTING_DB_CREATE) : 'none',
-          (Environment.HBM2DDL_AUTO): 'none',
-          (Settings.SETTING_MULTI_TENANCY_MODE): 'none'
-        ] as Map,
-
-        this.connectionDetails.getProperty((PROPERTY_FOLIO_SYSTEM), Map, [:]) as Map)
+      
+      // Because runtime additions are given a prefix of "" for property resolution,
+      // the best thing to do here is to resolve the properties t ot he root level as a map. 
+      this.connectionDetails.getProperty((Settings.SETTING_DATASOURCE), Map, [:]) as Map,
+    
+      // Override the defaults for the system DS only. 
+      [
+        (Environment.DEFAULT_SCHEMA): SystemDataService.getSystemDatasourceSchemaName(),
+        (Settings.SETTING_DB_CREATE) : 'none',
+        (Environment.HBM2DDL_AUTO): 'none',
+        (Settings.SETTING_MULTI_TENANCY_MODE): 'none'
+      ] as Map,
+      
+      // Treat entries under folio as first-class.
+      this.connectionDetails.getProperty((PROPERTY_FOLIO_SYSTEM), Map, [:]) as Map)
 
     _systemSourceSettings
   }

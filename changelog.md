@@ -1,9 +1,16 @@
 # Changelog
 
+## Version 5.0.1
+
+### Fixes
+* [General]
+	* Prevent root env vars (like USERNAME) taking precedence
+
 ## Version 5.0.0
 
 ### Changes
 * [Chore]
+	* Changelog - Generate the changelog
 	* Bump toolkit compilation target
 
 ## Version 5.0.0-beta.3

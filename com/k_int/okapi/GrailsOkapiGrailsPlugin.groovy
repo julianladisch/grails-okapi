@@ -1,7 +1,11 @@
 package com.k_int.okapi
 
+import org.grails.config.PropertySourcesConfig
 import org.grails.orm.hibernate.HibernateDatastore
 import org.springframework.boot.web.servlet.FilterRegistrationBean
+import org.springframework.core.convert.converter.Converter
+import org.springframework.core.convert.support.ConfigurableConversionService
+import org.springframework.core.env.PropertyResolver
 import org.springframework.http.HttpStatus
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
 
@@ -10,11 +14,16 @@ import com.k_int.okapi.remote_resources.RemoteOkapiLinkListener
 import com.k_int.okapi.springsecurity.OkapiAuthAwareAccessDeniedHandler
 import com.k_int.okapi.springsecurity.OkapiAuthenticationFilter
 import com.k_int.okapi.springsecurity.OkapiAuthenticationProvider
+import com.k_int.okapi.system.FolioHibernateDatastore
+import com.k_int.web.toolkit.utils.GormUtils
 
 import grails.core.GrailsClass
 import grails.plugin.springsecurity.SecurityFilterPosition
 import grails.plugin.springsecurity.SpringSecurityUtils
 import grails.plugins.*
+import services.k_int.core.AppFederationService
+import services.k_int.core.FolioLockService
+import services.k_int.core.TenantManagerService
 
 class GrailsOkapiGrailsPlugin extends Plugin {
 
@@ -23,7 +32,7 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   
   def dependsOn = [
     "springSecurityCore": "4.0 > 5.0",
-    "webToolkit":         "5.0 > 7.0",
+    "webToolkit":         "5.0 > *",
 //    "databaseMigration":  "3.1 > 4"  // Because this plugin doesn't currently set a version we cannot depend on it.
   ]
   // resources that are excluded from plugin packaging
@@ -59,7 +68,29 @@ class GrailsOkapiGrailsPlugin extends Plugin {
   Closure doWithSpring() { {->
     
       okapiClient (OkapiClient)
-    
+      
+      
+      if (pluginManager.hasGrailsPlugin('hibernate')) {
+        
+        PropertyResolver config = (PropertyResolver)grailsApplication.config
+        
+        if(config instanceof PropertySourcesConfig) {
+          ConfigurableConversionService conversionService = applicationContext.getEnvironment().getConversionService()
+          conversionService.addConverter(new Converter<String, Class>() {
+              @Override
+              Class convert(String source) {
+                  Class.forName(source)
+              }
+          })
+          ((PropertySourcesConfig)config).setConversionService(conversionService)
+        }
+        
+        hibernateDatastore(FolioHibernateDatastore, config, applicationContext)
+        
+        appFederationService ( AppFederationService )
+        folioLockService ( FolioLockService )
+        tenantManagerService ( TenantManagerService )
+      }
     
       // If OKAPI aware app.
       if (pluginManager.hasGrailsPlugin('springSecurityCore')) {
@@ -108,6 +139,16 @@ class GrailsOkapiGrailsPlugin extends Plugin {
       HibernateDatastore datastore = applicationContext.getBean(HibernateDatastore)
       RemoteOkapiLinkListener.register(datastore, applicationContext)
     }
+  }
+  
+  @Override
+  public void onStartup (Map<String, Object> event) {
+
+    // Try and register the instance.
+    final AppFederationService federationSvc = applicationContext.getBean ( AppFederationService )
+    federationSvc.registerInstance()
     
+    // TenantResolver can now return the actual tenants.
+    OkapiTenantResolver.flagReady()
   }
 }

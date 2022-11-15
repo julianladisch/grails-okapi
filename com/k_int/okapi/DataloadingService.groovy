@@ -85,7 +85,7 @@ public class DataloadingService implements EventPublisher, DataBinder {
     file
   }
   
-  private void executeTenantDataFile (final Resource res, final String tenantId, final Map vars = []) {
+  private void executeTenantDataFile (final Resource res, final String tenantId, final Map vars = [:]) {
     log.debug "executeTenantDataFile (${res}, ${tenantId}, ${vars})"
     BufferedReader br
     try {

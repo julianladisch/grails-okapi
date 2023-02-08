@@ -26,7 +26,7 @@ public class OkapiMdcInterceptor {
         
         String key = var.toLowerCase()
         key = key.startsWith(PREFIX) ? key.substring(PREFIX.length()) : key
-        MDC.put("{$key}", "${val}")
+        MDC.put("${key}", "${val}")
       }
     }
 
